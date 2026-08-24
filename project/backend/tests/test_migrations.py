@@ -9,10 +9,13 @@ from sqlalchemy import create_engine, inspect, text
 ROOT = Path(__file__).parents[1]
 
 
-def run_upgrade(database_url: str) -> None:
+def migration_config(database_url: str) -> Config:
     config = Config(str(ROOT / "alembic.ini"))
     config.set_main_option("sqlalchemy.url", database_url)
-    command.upgrade(config, "head")
+    return config
+
+def run_upgrade(database_url: str) -> None:
+    command.upgrade(migration_config(database_url), "head")
 
 
 def test_fresh_database_reaches_head(tmp_path: Path) -> None:
@@ -42,9 +45,11 @@ def test_legacy_database_preserves_data_and_adds_compatibility(tmp_path: Path) -
     connection.commit()
     connection.close()
 
-    run_upgrade(f"sqlite:///{db_path}")
+    url = f"sqlite:///{db_path}"
+    command.stamp(migration_config(url), "0001_baseline")
+    run_upgrade(url)
     engine = create_engine(f"sqlite:///{db_path}")
     with engine.connect() as conn:
         assert conn.execute(text("SELECT title FROM projects WHERE id = 7")).scalar_one() == "Legacy"
-        assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0001_baseline"
+        assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0002_legacy_compat"
     assert "audit_events" in inspect(engine).get_table_names()

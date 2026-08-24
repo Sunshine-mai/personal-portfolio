@@ -21,6 +21,7 @@ backend/logs/
 # Frontend
 node_modules/
 .vite/
+dist/
 
 # IDE and OS
 .idea/

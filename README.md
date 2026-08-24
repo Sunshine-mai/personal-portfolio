@@ -32,10 +32,10 @@
 
 ## 启动方式
 
-后端：`cd project/backend` 后执行 `..\\..\\.venv\\Scripts\\uvicorn.exe app.main:app --reload --host 127.0.0.1 --port 2001`。
-前端：`cd project/frontend` 后执行 `npm run dev`，访问 `http://localhost:1001`。脚本直接调用本地 `node.exe` 执行 Vite CLI，不依赖系统 PATH 中的 vite wrapper；构建使用 `npm run build`。
+后端（PowerShell）：`& .\\.venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 2001`（工作目录为 `project/backend`）。
+前端（PowerShell）：`& C:\\nvm\\v22.19.0\\node.exe node_modules/vite/bin/vite.js --host 127.0.0.1 --port 1001`（工作目录为 `project/frontend`），访问 `http://localhost:1001`；构建使用 `& C:\\nvm\\v22.19.0\\node.exe node_modules/vite/bin/vite.js build`。
 
-管理员登录使用环境变量 `ADMIN_USERNAME` / `ADMIN_PASSWORD`（仅本地开发占位值），登录后获得 JWT。数据库迁移使用 `..\\..\\.venv\\Scripts\\alembic.exe upgrade head`；旧的仅含业务表的 SQLite 会保留数据并补齐 `alembic_version` 与 `audit_events`，全新库也可直接升级到 head。不要删除旧数据库。
+管理员登录使用环境变量 `ADMIN_USERNAME` / `ADMIN_PASSWORD`（仅本地开发占位值），登录后获得 JWT。全新数据库使用 `..\\..\\.venv\\Scripts\\alembic.exe upgrade head`；旧的仅含业务表的 SQLite 首次迁移使用 `..\\..\\.venv\\Scripts\\alembic.exe stamp 0001_baseline`，再执行 `..\\..\\.venv\\Scripts\\alembic.exe upgrade head`，保留原有数据并补齐兼容表。不要删除旧数据库。
 
 ## 文档
 
