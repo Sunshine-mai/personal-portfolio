@@ -18,9 +18,6 @@ def upgrade() -> None:
     op.create_index("ix_audit_events_created_at", "audit_events", ["created_at"])
 
 def downgrade() -> None:
-    op.drop_index("ix_audit_events_created_at", table_name="audit_events")
-    op.drop_index("ix_audit_events_action", table_name="audit_events")
-    op.drop_table("audit_events")
     op.drop_table("admin_users")
     op.drop_index("ix_revisions_project_id", table_name="revisions")
     op.drop_table("revisions")

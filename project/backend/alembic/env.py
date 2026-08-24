@@ -19,10 +19,17 @@ def run_migrations_offline():
 def run_migrations_online():
     connectable = engine_from_config(config.get_section(config.config_ini_section, {}), prefix="sqlalchemy.", poolclass=pool.NullPool)
     with connectable.connect() as connection:
-        if inspect(connection).has_table("projects") and not inspect(connection).has_table("alembic_version"):
-            connection.exec_driver_sql("CREATE TABLE IF NOT EXISTS alembic_version (version_num VARCHAR(32) NOT NULL PRIMARY KEY)")
+        inspector = inspect(connection)
+        # The first local prototype created tables with Base.metadata.create_all().
+        # Preserve that data, then let the compatibility revision add only missing
+        # objects and establish a real Alembic version.
+        if inspector.has_table("projects") and not inspector.has_table("alembic_version"):
+            connection.exec_driver_sql(
+                "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL PRIMARY KEY)"
+            )
+            # Mark the legacy database at the parent revision. This allows the
+            # compatibility revision to run normally and add missing objects.
             connection.exec_driver_sql("INSERT INTO alembic_version (version_num) VALUES ('0001_baseline')")
-            return
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():
             context.run_migrations()

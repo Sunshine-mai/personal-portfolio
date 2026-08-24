@@ -33,9 +33,9 @@
 ## 启动方式
 
 后端：`cd project/backend` 后执行 `..\\..\\.venv\\Scripts\\uvicorn.exe app.main:app --reload --host 127.0.0.1 --port 2001`。
-前端：`cd project/frontend` 后执行 `npm run dev`，访问 `http://localhost:1001`。
+前端：`cd project/frontend` 后执行 `npm run dev`，访问 `http://localhost:1001`。脚本直接调用本地 `node.exe` 执行 Vite CLI，不依赖系统 PATH 中的 vite wrapper；构建使用 `npm run build`。
 
-管理员登录使用环境变量 `ADMIN_USERNAME` / `ADMIN_PASSWORD`（仅本地开发占位值），登录后获得 JWT。SQLite 数据库在后端工作目录生成，首次启动自动建表；Alembic 目录将在迁移基线阶段补齐。
+管理员登录使用环境变量 `ADMIN_USERNAME` / `ADMIN_PASSWORD`（仅本地开发占位值），登录后获得 JWT。数据库迁移使用 `..\\..\\.venv\\Scripts\\alembic.exe upgrade head`；旧的仅含业务表的 SQLite 会保留数据并补齐 `alembic_version` 与 `audit_events`，全新库也可直接升级到 head。不要删除旧数据库。
 
 ## 文档
 
@@ -60,5 +60,5 @@
 ## 已知缺口
 
 - 真实项目资料、贡献边界、证据和授权尚未人工确认，当前不写入真实内容，界面使用空状态或安全占位文案。
-- Alembic 迁移、审计事件和浏览器自动化将在后续质量阶段补齐；当前已补齐项目更新、拒绝和下线接口。
+- 浏览器自动化仍需在具备浏览器验证工具的环境中执行；当前已补齐兼容迁移、项目更新、拒绝和下线接口及核心接口测试。
 - 不执行旧项目源码；`ai-translator` 与未来实验平台保持运行时和数据库隔离。
