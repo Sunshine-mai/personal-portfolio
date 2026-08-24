@@ -3,6 +3,8 @@
 from fastapi import FastAPI
 
 from app.config import get_settings
+from app.api import public, admin
+from app.db import Base, engine
 
 settings = get_settings()
 app = FastAPI(
@@ -10,6 +12,9 @@ app = FastAPI(
     description="稳定的个人项目、知识和交付记录平台",
     version="0.1.0",
 )
+Base.metadata.create_all(bind=engine)
+app.include_router(public)
+app.include_router(admin)
 
 
 @app.get("/api/health", tags=["system"])
