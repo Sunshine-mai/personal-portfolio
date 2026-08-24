@@ -27,3 +27,12 @@ class RevisionOut(BaseModel):
     status: str
     change_summary: str
     model_config = {"from_attributes": True}
+
+class AuditEventOut(BaseModel):
+    id: int
+    actor: str
+    action: str
+    resource_type: str
+    resource_id: str | None
+    detail: str
+    created_at: str
