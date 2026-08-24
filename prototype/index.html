@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="个人工程作品集原型：用项目、决策与证据展示软件开发和 AI 应用开发能力。" />
+  <title>工程档案馆 · Portfolio Prototype</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap');
+
+    :root {
+      --paper: #f6f7f8;
+      --surface: #ffffff;
+      --ink: #17212b;
+      --muted: #607080;
+      --line: #dfe5ea;
+      --line-strong: #b8c4ce;
+      --rust: #1f5f8b;
+      --rust-dark: #15476a;
+      --rust-soft: #dbeaf4;
+      --teal: #2f7180;
+      --green: #3f7255;
+      --shadow: 0 18px 45px rgba(23, 27, 29, .08);
+      --sans: "DM Sans", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      --serif: "Playfair Display", "Noto Serif SC", Georgia, serif;
+      --mono: "DM Mono", "Cascadia Code", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; color: var(--ink); background: var(--paper); font-family: var(--sans); line-height: 1.6; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    a { color: inherit; }
+    .container { width: min(1240px, calc(100% - 96px)); margin: 0 auto; }
+    .mono { font-family: var(--mono); letter-spacing: .03em; }
+    .eyebrow { color: var(--rust-dark); font: 500 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    .muted { color: var(--muted); }
+
+    .topbar { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--line); background: rgba(246,247,248,.96); }
+    .nav { display: flex; align-items: center; justify-content: space-between; min-height: 72px; }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; font-weight: 700; }
+    .brand-mark { display: grid; place-items: center; width: 32px; height: 32px; color: #fff; background: var(--rust); font: 500 13px var(--mono); }
+    .nav-links { display: flex; align-items: center; gap: 26px; }
+    .nav-links a { color: var(--muted); font-size: 14px; text-decoration: none; }
+    .nav-links a:hover, .nav-links a.active { color: var(--rust-dark); }
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+    .icon-btn, .menu-btn { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--line); color: var(--ink); background: transparent; }
+    .menu-btn { display: none; }
+
+    .hero { padding: 96px 0 80px; border-bottom: 1px solid var(--line); }
+    .hero-grid { display: grid; grid-template-columns: 1.25fr .75fr; gap: 80px; align-items: end; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 850px; margin: 22px 0 28px; font: 600 clamp(46px, 6vw, 76px)/1.08 var(--sans); letter-spacing: -.045em; }
+    .hero-copy { max-width: 610px; color: var(--muted); font-size: 19px; }
+    .hero-actions { display: flex; gap: 12px; margin-top: 32px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 1px solid var(--ink); text-decoration: none; font-size: 14px; transition: transform .18s ease, background .18s ease, color .18s ease; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary { color: var(--surface); background: var(--rust); border-color: var(--rust); }
+    .btn-primary:hover { background: var(--rust-dark); }
+    .btn-ghost:hover { color: var(--surface); background: var(--ink); }
+    .fact-index { border-top: 1px solid var(--line-strong); }
+    .fact { display: flex; justify-content: space-between; gap: 20px; padding: 17px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+    .fact strong { font-weight: 600; text-align: right; }
+
+    .section { padding: 96px 0; border-bottom: 1px solid var(--line); }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 38px; }
+    .section-title { margin: 10px 0 0; font: 600 clamp(30px, 4vw, 48px)/1.12 var(--sans); letter-spacing: -.035em; }
+    .section-intro { max-width: 500px; color: var(--muted); }
+    .project-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 18px; }
+    .project-card { position: relative; min-height: 330px; padding: 30px; border: 1px solid var(--line-strong); background: var(--surface); overflow: hidden; transition: transform .2s ease, box-shadow .2s ease; }
+    .project-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+    .project-card.featured { min-height: 470px; color: var(--surface); background: #163b59; border-color: #163b59; }
+    .project-card:nth-child(2) { background: #ffffff; }
+    .project-card:nth-child(3) { background: #ffffff; }
+    .project-number { color: var(--rust); font: 500 13px var(--mono); }
+    .featured .project-number { color: #e07148; }
+    .project-card h3 { max-width: 440px; margin: 55px 0 12px; font: 600 clamp(28px, 4vw, 46px)/1.08 var(--sans); letter-spacing: -.04em; }
+    .project-card:not(.featured) h3 { margin-top: 36px; font-size: 34px; }
+    .project-card p { max-width: 500px; color: var(--muted); }
+    .featured p { color: #adb6b5; }
+    .tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 24px; }
+    .tag { padding: 4px 8px; border: 1px solid currentColor; color: var(--teal); font: 12px var(--mono); }
+    .featured .tag { color: #c8d0c9; }
+    .project-link { position: absolute; right: 28px; bottom: 25px; color: var(--rust-dark); font: 13px var(--mono); text-decoration: none; }
+    .featured .project-link { color: #e07148; }
+
+    .evidence-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .evidence { padding: 25px; border-top: 2px solid var(--rust); background: var(--surface); }
+    .evidence h3 { margin: 18px 0 8px; font-size: 19px; }
+    .evidence p { color: var(--muted); font-size: 14px; }
+    .evidence .index { color: var(--rust); font: 12px var(--mono); }
+
+    .network-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+    .network { position: relative; min-height: 450px; border: 1px solid var(--line-strong); background: #f0f4f6; overflow: hidden; }
+    .network::before { content: "KNOWLEDGE / RELATION MAP"; position: absolute; top: 22px; left: 24px; color: var(--muted); font: 11px var(--mono); }
+    .network-line { position: absolute; height: 1px; background: var(--line-strong); transform-origin: left center; }
+    .line-a { top: 55%; left: 22%; width: 270px; transform: rotate(-23deg); }
+    .line-b { top: 55%; left: 49%; width: 185px; transform: rotate(24deg); }
+    .line-c { top: 38%; left: 52%; width: 220px; transform: rotate(78deg); }
+    .node { position: absolute; display: grid; place-items: center; width: 116px; height: 116px; padding: 10px; border: 1px solid var(--ink); border-radius: 50%; background: var(--surface); color: var(--ink); font-size: 13px; text-align: center; transition: transform .2s ease, background .2s ease; }
+    .node:hover, .node.selected { z-index: 2; color: var(--surface); background: var(--rust); transform: scale(1.08); }
+    .node small { display: block; color: var(--muted); font: 10px var(--mono); }
+    .node:hover small, .node.selected small { color: #f4d7cc; }
+    .node-a { left: 10%; top: 45%; }
+    .node-b { left: 43%; top: 25%; width: 138px; height: 138px; background: var(--ink); color: var(--surface); }
+    .node-b small { color: #adb6b5; }
+    .node-c { right: 12%; top: 49%; }
+    .node-d { left: 51%; bottom: 8%; width: 96px; height: 96px; }
+    .network-detail { padding: 25px; border: 1px solid var(--line); background: var(--surface); }
+    .network-detail h3 { margin: 16px 0 8px; font: 500 28px var(--serif); }
+    .network-detail p { color: var(--muted); font-size: 14px; }
+    .network-list { margin: 20px 0 0; padding: 0; list-style: none; }
+    .network-list li { padding: 10px 0; border-top: 1px solid var(--line); font-size: 13px; }
+
+    .timeline { display: grid; grid-template-columns: 1fr 1fr; gap: 0 70px; }
+    .timeline-item { display: grid; grid-template-columns: 100px 1fr; gap: 20px; padding: 25px 0; border-top: 1px solid var(--line); }
+    .timeline-item .date { color: var(--rust-dark); font: 12px var(--mono); }
+    .timeline-item h3 { margin-bottom: 6px; font-size: 18px; }
+    .timeline-item p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    .method-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); }
+    .method { min-height: 180px; padding: 22px 18px; border-right: 1px solid var(--line); }
+    .method:last-child { border-right: 0; }
+    .method b { display: block; margin: 22px 0 9px; font-size: 16px; }
+    .method p { color: var(--muted); font-size: 13px; }
+
+    footer { padding: 55px 0 70px; }
+    .footer-grid { display: flex; justify-content: space-between; gap: 30px; align-items: end; }
+    .footer-grid p { max-width: 420px; color: var(--muted); }
+    .footer-links { display: flex; gap: 18px; font: 13px var(--mono); }
+
+    .drawer-backdrop { position: fixed; inset: 0; z-index: 30; display: none; background: rgba(23,27,29,.38); }
+    .drawer { position: absolute; top: 0; right: 0; width: min(520px, 94vw); height: 100%; padding: 32px; background: var(--surface); overflow: auto; transform: translateX(100%); transition: transform .25s ease; }
+    .drawer-backdrop.open { display: block; }
+    .drawer-backdrop.open .drawer { transform: translateX(0); }
+    .drawer-close { float: right; border: 0; background: transparent; font-size: 24px; }
+    .drawer h2 { margin-top: 60px; font: 600 42px/1.1 var(--sans); }
+    .drawer .meta { color: var(--rust-dark); font: 12px var(--mono); }
+    .drawer-section { padding: 20px 0; border-top: 1px solid var(--line); }
+    .drawer-section h3 { font-size: 15px; }
+    .drawer-section p { color: var(--muted); font-size: 14px; }
+    .toast { position: fixed; right: 22px; bottom: 22px; z-index: 50; display: none; padding: 13px 16px; color: var(--surface); background: var(--ink); font-size: 13px; box-shadow: var(--shadow); }
+    .toast.show { display: block; animation: toast-in .2s ease; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    @media (max-width: 900px) {
+      .container { width: min(100% - 48px, 680px); }
+      .nav-links { display: none; position: absolute; top: 72px; left: 0; right: 0; padding: 20px 24px; border-bottom: 1px solid var(--line); background: var(--surface); flex-direction: column; align-items: flex-start; }
+      .nav-links.open { display: flex; }
+      .menu-btn { display: grid; }
+      .hero { padding: 78px 0 65px; }
+      .hero-grid, .project-grid, .network-layout { grid-template-columns: 1fr; gap: 40px; }
+      .evidence-grid { grid-template-columns: 1fr; }
+      .timeline { grid-template-columns: 1fr; }
+      .method-grid { grid-template-columns: repeat(2, 1fr); }
+      .method:nth-child(2) { border-right: 0; }
+      .method:nth-child(n+3) { border-top: 1px solid var(--line); }
+      .method:last-child { grid-column: 1 / -1; }
+    }
+    @media (max-width: 520px) {
+      .container { width: calc(100% - 32px); }
+      .nav { min-height: 64px; }
+      .nav-links { top: 64px; }
+      .hero { padding-top: 60px; }
+      h1 { font-size: 44px; }
+      .hero-copy { font-size: 17px; }
+      .hero-actions { flex-direction: column; align-items: stretch; }
+      .section { padding: 66px 0; }
+      .section-head { display: block; }
+      .section-intro { margin-top: 18px; }
+      .project-card, .project-card.featured { min-height: 360px; padding: 23px; }
+      .project-card h3 { margin-top: 42px; font-size: 35px; }
+      .network { min-height: 390px; }
+      .node { width: 88px; height: 88px; font-size: 11px; }
+      .node-b { width: 110px; height: 110px; }
+      .node-d { width: 75px; height: 75px; }
+      .timeline-item { grid-template-columns: 1fr; gap: 5px; }
+      .method-grid { display: block; }
+      .method, .method:nth-child(2) { min-height: auto; border-right: 0; border-top: 1px solid var(--line); }
+      .method:first-child { border-top: 0; }
+      .footer-grid { display: block; }
+      .footer-links { margin-top: 22px; flex-wrap: wrap; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container nav">
+      <a class="brand" href="#top" aria-label="返回首页"><span class="brand-mark">C5</span><span>工程档案馆</span></a>
+      <nav class="nav-links" id="navLinks" aria-label="主导航">
+        <a class="active" href="#projects">项目</a>
+        <a href="#network">知识网络</a>
+        <a href="#learning">学习轨迹</a>
+        <a href="#method">交付方法</a>
+        <a href="#about">关于</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="icon-btn" id="copyBtn" type="button" aria-label="复制联系邮箱" title="复制邮箱">@</button>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="打开菜单" aria-expanded="false">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <div class="eyebrow">Software development / AI applications</div>
+          <h1>我做过什么，<br />这里有完整记录。</h1>
+          <p class="hero-copy">这是我的项目、技术选择和开发记录。你可以先看结果，也可以继续往下看我怎么做、怎么测试，以及哪里还在学习。</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#projects">查看代表项目 <span>↗</span></a>
+            <a class="btn btn-ghost" href="#method">了解我的交付方法</a>
+          </div>
+        </div>
+        <div class="fact-index" aria-label="个人事实索引">
+          <div class="fact"><span class="muted mono">FOCUS</span><strong>AI 应用开发 / 全栈</strong></div>
+          <div class="fact"><span class="muted mono">PROJECTS</span><strong>03 个代表项目</strong></div>
+          <div class="fact"><span class="muted mono">STACKS</span><strong>Java → Python</strong></div>
+          <div class="fact"><span class="muted mono">WORKFLOW</span><strong>设计 · 实现 · 测试 · 交付</strong></div>
+          <div class="fact"><span class="muted mono">STATUS</span><strong style="color:var(--green)">开放合作</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="projects">
+      <div class="container">
+        <div class="section-head">
+          <div><div class="eyebrow">Projects / 01—03</div><h2 class="section-title">我做过的三个项目。</h2></div>
+          <p class="section-intro">从团队协作开始，后来独立完成 Java 项目，再用 Python 做了 AI Translator。每个项目都保留了当时的做法和结果。</p>
+        </div>
+        <div class="project-grid">
+          <article class="project-card featured" data-project="translator">
+            <div class="project-number">PROJECT 03 · INDEPENDENT</div>
+            <h3>AI Translator</h3>
+            <p>无广告 AI 翻译与英语学习工具。用 FastAPI、Vue 3、Redis 和 Docker，把翻译结果沉淀为可复习的学习闭环。</p>
+            <div class="tags"><span class="tag">Python</span><span class="tag">FastAPI</span><span class="tag">Vue 3</span><span class="tag">Redis</span></div>
+            <a class="project-link" href="#" data-open-project="translator">查看案例 ↗</a>
+          </article>
+          <article class="project-card" data-project="second-brain">
+            <div class="project-number">PROJECT 02 · SOLO</div>
+            <h3>AI Second Brain</h3>
+            <p>第一个独立全栈项目：以 Java/Spring Boot 构建 RAG 知识库聊天系统，完整经历从 Demo 到部署。</p>
+            <div class="tags"><span class="tag">Java</span><span class="tag">Spring Boot</span><span class="tag">RAG</span></div>
+            <a class="project-link" href="#" data-open-project="second-brain">查看案例 ↗</a>
+          </article>
+          <article class="project-card" data-project="team-project">
+            <div class="project-number">PROJECT 01 · COLLABORATIVE</div>
+            <h3>协作项目</h3>
+            <p>第一次真正进入团队开发。重点展示协作边界、负责模块、联调经验，以及从这里摸进编程门道的过程。</p>
+            <div class="tags"><span class="tag">Java</span><span class="tag">Vue 3</span><span class="tag">Teamwork</span></div>
+            <a class="project-link" href="#" data-open-project="team-project">查看案例 ↗</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="evidence">
+      <div class="container">
+        <div class="section-head"><div><div class="eyebrow">How I work</div><h2 class="section-title">我通常这样做项目。</h2></div><p class="section-intro">先把问题说清楚，再动手实现。过程中会记录取舍，并用实际测试确认结果。</p></div>
+        <div class="evidence-grid">
+          <article class="evidence"><span class="index">01 / PLAN</span><h3>先把问题拆开</h3><p>确认目标、范围、数据怎么流，以及这次不做什么。</p></article>
+          <article class="evidence"><span class="index">02 / TEST</span><h3>做完以后再验证</h3><p>跑单元测试、接口测试和浏览器操作，不只看页面能不能打开。</p></article>
+          <article class="evidence"><span class="index">03 / REVIEW</span><h3>把经验留下来</h3><p>遇到的问题、做过的取舍和下一步计划，都会写进记录。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="network">
+      <div class="container">
+        <div class="section-head"><div><div class="eyebrow">Knowledge / prototype</div><h2 class="section-title">我正在学习什么。</h2></div><p class="section-intro">点击一个主题，可以看到它和哪些项目有关，以及我目前掌握到什么程度。</p></div>
+        <div class="network-layout">
+          <div class="network" aria-label="可交互知识网络">
+            <span class="network-line line-a"></span><span class="network-line line-b"></span><span class="network-line line-c"></span>
+            <button class="node node-a" data-node="Python"><span>Python<small>正在巩固</small></span></button>
+            <button class="node node-b" data-node="AI Translator"><span>AI Translator<small>PROJECT 03</small></span></button>
+            <button class="node node-c" data-node="FastAPI"><span>FastAPI<small>API architecture</small></span></button>
+            <button class="node node-d" data-node="RAG"><span>RAG<small>PROJECT 02</small></span></button>
+          </div>
+          <aside class="network-detail" id="networkDetail"><div class="eyebrow">Selected node</div><h3>AI Translator</h3><p>当前作品集的 Python 实战案例。它把翻译、查词、生词本和复习流程连接成一个学习产品。</p><ul class="network-list"><li><span class="mono">USED IN</span> 翻译链路、缓存、限流、部署</li><li><span class="mono">DECISION</span> SQLite 开发降门槛，生产切 PostgreSQL</li><li><span class="mono">NEXT</span> 补强正式测试与 Python 原理理解</li></ul></aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="learning">
+      <div class="container">
+        <div class="section-head"><div><div class="eyebrow">Learning notes</div><h2 class="section-title">边做项目，边补基础。</h2></div><p class="section-intro">详细学习过程放在 ai-dev-lab，这里只展示和项目有关的几个阶段。</p></div>
+        <div class="timeline">
+          <article class="timeline-item"><span class="date">2026.06</span><div><h3>从 Java 进入 Python</h3><p>不是抛弃已有经验，而是用 Spring Boot 的调用链去理解 FastAPI 的路由、依赖注入和服务分层。</p></div></article>
+          <article class="timeline-item"><span class="date">2026.08</span><div><h3>把功能做成学习闭环</h3><p>翻译不再止于结果：查词、收藏、复习和统计让产品真正服务英语学习。</p></div></article>
+          <article class="timeline-item"><span class="date">NEXT</span><div><h3>从验证脚本走向正式测试</h3><p>继续补齐 pytest、接口测试和浏览器验证，把“我测试过”变成可重复的质量证据。</p></div></article>
+          <article class="timeline-item"><span class="date">LAB</span><div><h3>三次复用才算理解</h3><p>在 ai-dev-lab 学概念，在正式项目里落地，再在作品集里用自己的话说明取舍。</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="method">
+      <div class="container">
+        <div class="section-head"><div><div class="eyebrow">Project workflow</div><h2 class="section-title">从想法到可以交付。</h2></div><p class="section-intro">我会把工作拆成几步，每一步都有结果，不把问题留到最后一起处理。</p></div>
+        <div class="method-grid">
+          <article class="method"><span class="mono">01</span><b>定义问题</b><p>目标、用户、边界和不做什么。</p></article>
+          <article class="method"><span class="mono">02</span><b>记录决策</b><p>比较方案，解释选择与代价。</p></article>
+          <article class="method"><span class="mono">03</span><b>小步实现</b><p>每个功能独立可运行和可验证。</p></article>
+          <article class="method"><span class="mono">04</span><b>多层验证</b><p>单元、接口、浏览器和部署检查。</p></article>
+          <article class="method"><span class="mono">05</span><b>交付复盘</b><p>版本、隐私、证据、回滚和经验沉淀。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="about">
+      <div class="container" style="max-width: 850px; margin-left: max(16px, calc((100% - 1240px) / 2)); margin-right: auto;">
+        <div class="eyebrow">About me</div><h2 class="section-title">我还在学习，但不会只停在会用。</h2>
+        <p style="margin-top:28px; color:var(--muted); font-size:18px;">我目前的方向是软件开发和 AI 应用开发。过去主要靠项目实践积累经验，现在一边维护已有项目，一边通过 ai-dev-lab 补 Python、Java 和大模型相关基础。</p>
+        <div class="hero-actions"><button class="btn btn-primary" id="contactBtn" type="button">复制联系邮箱</button><a class="btn btn-ghost" href="#projects">回到项目</a></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-grid"><div><div class="brand"><span class="brand-mark">C5</span><span>工程档案馆</span></div><p>一个持续更新的个人工程作品集原型。当前展示内容为设计阶段的真实结构草案。</p></div><div class="footer-links"><a href="#projects">PROJECTS</a><a href="#network">KNOWLEDGE</a><a href="#about">CONTACT</a></div></div>
+  </footer>
+
+  <div class="drawer-backdrop" id="drawerBackdrop" role="presentation">
+    <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle"><button class="drawer-close" id="drawerClose" aria-label="关闭项目详情">×</button><div class="meta" id="drawerMeta">PROJECT 03 · INDEPENDENT</div><h2 id="drawerTitle">AI Translator</h2><p id="drawerLead" class="muted">无广告 AI 翻译与英语学习工具。</p><div class="drawer-section"><h3>问题与服务</h3><p id="drawerProblem">为英语学习者提供没有广告干扰、可以沉淀生词并持续复习的翻译体验。</p></div><div class="drawer-section"><h3>关键证据</h3><ul class="network-list" id="drawerEvidence"><li>FastAPI 分层架构与 JWT 认证</li><li>翻译引擎降级、Redis 缓存与限流</li><li>生词本、复习流程与移动端体验</li></ul></div><div class="drawer-section"><h3>当前状态</h3><p id="drawerStatus">已完成核心闭环，下一步是整理正式测试与公开版本审查。</p></div><button class="btn btn-primary" id="drawerAction" type="button">标记为重点案例</button></aside>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const projects = {
+      translator: { meta: 'PROJECT 03 · INDEPENDENT', title: 'AI Translator', lead: '无广告 AI 翻译与英语学习工具。', problem: '为英语学习者提供没有广告干扰、可以沉淀生词并持续复习的翻译体验。', evidence: ['FastAPI 分层架构与 JWT 认证', '翻译引擎降级、Redis 缓存与限流', '生词本、复习流程与移动端体验'], status: '已完成核心闭环，下一步是整理正式测试与公开版本审查。' },
+      'second-brain': { meta: 'PROJECT 02 · SOLO', title: 'AI Second Brain', lead: '第一个独立全栈项目：Java RAG 知识库聊天系统。', problem: '把文档上传、切片、检索和对话连接起来，让知识库能够被自然地查询。', evidence: ['Spring Boot 分层与鉴权', 'RAG 检索链路和流式对话', 'Docker 部署、内存限制与线上排障'], status: '已完成独立项目闭环，正在整理公开版本与贡献证据。' },
+      'team-project': { meta: 'PROJECT 01 · COLLABORATIVE', title: '协作项目', lead: '第一次真正进入团队开发，也是在这里摸进了编程的门道。', problem: '在合作项目中理解需求拆解、前后端联调、模块边界和团队交付节奏。', evidence: ['明确个人负责模块', '记录协作与联调经验', '诚实区分团队成果与个人贡献'], status: '待完成公开授权、贡献边界和展示材料审查。' }
+    };
+    const $ = (selector) => document.querySelector(selector);
+    const toast = (message) => { const el = $('#toast'); el.textContent = message; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2400); };
+    const openProject = (key) => { const item = projects[key]; if (!item) return; $('#drawerMeta').textContent = item.meta; $('#drawerTitle').textContent = item.title; $('#drawerLead').textContent = item.lead; $('#drawerProblem').textContent = item.problem; $('#drawerStatus').textContent = item.status; $('#drawerEvidence').innerHTML = item.evidence.map((value) => `<li>${value}</li>`).join(''); $('#drawerBackdrop').classList.add('open'); document.body.style.overflow = 'hidden'; $('#drawerClose').focus(); };
+    const closeProject = () => { $('#drawerBackdrop').classList.remove('open'); document.body.style.overflow = ''; };
+    document.querySelectorAll('[data-open-project]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); openProject(link.dataset.openProject); }));
+    $('#drawerClose').addEventListener('click', closeProject);
+    $('#drawerBackdrop').addEventListener('click', (event) => { if (event.target === $('#drawerBackdrop')) closeProject(); });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeProject(); });
+    $('#drawerAction').addEventListener('click', () => toast('已标记：重点案例（原型状态）'));
+    $('#menuBtn').addEventListener('click', () => { const links = $('#navLinks'); const open = links.classList.toggle('open'); $('#menuBtn').setAttribute('aria-expanded', String(open)); });
+    document.querySelectorAll('.nav-links a').forEach((link) => link.addEventListener('click', () => { $('#navLinks').classList.remove('open'); $('#menuBtn').setAttribute('aria-expanded', 'false'); }));
+    const copyEmail = async () => { try { await navigator.clipboard.writeText('hello@portfolio.local'); toast('联系邮箱已复制'); } catch { toast('原型邮箱：hello@portfolio.local'); } };
+    $('#copyBtn').addEventListener('click', copyEmail); $('#contactBtn').addEventListener('click', copyEmail);
+    const nodeContent = { Python: ['Python', '当前主线：从 0 基础走向能读懂并改造真实项目。'], 'AI Translator': ['AI Translator', 'Python/FastAPI 实战案例：翻译、学习闭环、缓存、限流与部署。'], FastAPI: ['FastAPI', '在 AI Translator 中负责 API 路由、依赖注入、异常和健康检查。'], RAG: ['RAG', '在 AI Second Brain 中完成文档检索与知识库对话链路。'] };
+    document.querySelectorAll('.node').forEach((node) => node.addEventListener('click', () => { document.querySelectorAll('.node').forEach((item) => item.classList.remove('selected')); node.classList.add('selected'); const [title, text] = nodeContent[node.dataset.node]; $('#networkDetail h3').textContent = title; $('#networkDetail p').textContent = text; toast(`已定位知识节点：${title}`); }));
+  </script>
+</body>
+</html>
