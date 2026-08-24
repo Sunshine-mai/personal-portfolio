@@ -16,11 +16,12 @@ def test_login_success_and_failure():
 def test_complete_audit_publish_workflow_and_public_filter():
     headers = login()
     assert client.get("/api/admin/projects", headers=headers).status_code == 200
-    created = client.post("/api/admin/projects", json=payload, headers=headers)
+    unique_payload = {**payload, "slug": "acceptance-project-workflow"}
+    created = client.post("/api/admin/projects", json=unique_payload, headers=headers)
     assert created.status_code == 200
     project_id = created.json()["data"]["id"]
     revision_id = created.json()["data"]["revision_id"]
-    edited = client.put(f"/api/admin/projects/{project_id}", json={**payload, "title": "Edited"}, headers=headers)
+    edited = client.put(f"/api/admin/projects/{project_id}", json={**unique_payload, "title": "Edited"}, headers=headers)
     assert edited.status_code == 200
     assert client.post(f"/api/admin/revisions/{revision_id}/approve", headers=headers).status_code == 409
     submitted = client.post(f"/api/admin/projects/{project_id}/submit-review", headers=headers)
@@ -35,6 +36,6 @@ def test_complete_audit_publish_workflow_and_public_filter():
     assert not any(item["id"] == project_id for item in client.get("/api/public/projects").json()["data"])
 
 def test_unauthorized_and_invalid_state():
-    assert client.post("/api/admin/projects", json=payload).status_code == 401
+    assert client.post("/api/admin/projects", json={**payload, "slug": "unauthorized-project"}).status_code == 401
     headers = login()
     assert client.post("/api/admin/revisions/999999/approve", headers=headers).status_code == 404
