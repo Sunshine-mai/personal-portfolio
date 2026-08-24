@@ -65,6 +65,33 @@ def submit_review(project_id: int, _: str = Depends(require_admin), db: Session 
     revision.status = "IN_REVIEW"; p.status = "IN_REVIEW"; db.commit()
     return {"code": 200, "message": "success", "data": {"revision_id": revision.id, "status": revision.status}}
 
+@admin.put("/projects/{project_id}")
+def update_project(project_id: int, payload: ProjectCreate, _: str = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    p = db.get(Project, project_id)
+    if not p: raise HTTPException(404, "RESOURCE_NOT_FOUND")
+    duplicate = db.scalar(select(Project).where(Project.slug == payload.slug, Project.id != project_id))
+    if duplicate: raise HTTPException(409, "REVISION_CONFLICT")
+    for key, value in payload.model_dump().items(): setattr(p, key, value)
+    latest = db.scalar(select(Revision).where(Revision.project_id == p.id).order_by(Revision.number.desc()))
+    revision = Revision(project_id=p.id, number=(latest.number + 1 if latest else 1), snapshot=json.dumps(payload.model_dump(), ensure_ascii=False), change_summary="编辑生成新修订")
+    p.status = "DRAFT"; p.published = False; db.add(revision); db.commit(); db.refresh(p)
+    return {"code": 200, "message": "success", "data": project_data(p, revision.id)}
+
+@admin.post("/revisions/{revision_id}/reject")
+def reject(revision_id: int, _: str = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    revision = db.get(Revision, revision_id)
+    if not revision: raise HTTPException(404, "RESOURCE_NOT_FOUND")
+    if revision.status != "IN_REVIEW": raise HTTPException(409, "INVALID_STATE_TRANSITION")
+    revision.status = "CHANGES_REQUESTED"; revision.project.status = "DRAFT"; db.commit()
+    return {"code": 200, "message": "success", "data": {"revision_id": revision.id, "status": revision.status}}
+
+@admin.post("/projects/{project_id}/unpublish")
+def unpublish(project_id: int, _: str = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    p = db.get(Project, project_id)
+    if not p: raise HTTPException(404, "RESOURCE_NOT_FOUND")
+    p.published = False; p.status = "UNPUBLISHED"; db.commit()
+    return {"code": 200, "message": "success", "data": {"project_id": p.id, "status": p.status}}
+
 @admin.post("/revisions/{revision_id}/approve")
 def approve(revision_id: int, _: str = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
     revision = db.get(Revision, revision_id)
