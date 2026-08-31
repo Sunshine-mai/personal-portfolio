@@ -17,6 +17,7 @@ venv/
 backend/data/
 backend/uploads/
 backend/logs/
+archive/backups/
 
 # Frontend
 node_modules/
