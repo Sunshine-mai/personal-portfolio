@@ -24,6 +24,9 @@ node_modules/
 .vite/
 dist/
 
+# Java/Maven
+target/
+
 # IDE and OS
 .idea/
 .vscode/
