@@ -1,5 +1,6 @@
 package com.crow5.portfolio.common;
 
+import cn.dev33.satoken.exception.NotLoginException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -30,5 +31,18 @@ public class GlobalExceptionHandler {
                 exception.getStatusCode().value(), exception.getReason(), Map.of()
         );
         return ResponseEntity.status(exception.getStatusCode()).body(response);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> state(IllegalStateException exception) {
+        int status = "RESOURCE_NOT_FOUND".equals(exception.getMessage()) ? 404 : 409;
+        ApiResponse<Map<String, String>> response = new ApiResponse<>(status, exception.getMessage(), Map.of());
+        return ResponseEntity.status(status).body(response);
+    }
+
+    @ExceptionHandler(NotLoginException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> notLogin() {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiResponse<>(401, "AUTHENTICATION_REQUIRED", Map.of()));
     }
 }
