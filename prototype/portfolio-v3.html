@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="个人作品集 V3：AI 产品、剪辑与持续构想">
+  <title>作品集 / V3</title>
+  <link rel="stylesheet" href="./portfolio-v3.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <header class="site-header">
+    <div class="shell nav-wrap">
+      <a class="brand" href="#home" aria-label="返回首页"><span class="brand-mark">C5</span><span>作品集<span class="brand-dot">.</span></span></a>
+      <button class="menu-toggle" id="menuToggle" aria-label="打开导航菜单" aria-expanded="false" aria-controls="siteNav">菜单 <span>☰</span></button>
+      <nav id="siteNav" class="site-nav" aria-label="主导航">
+        <a href="#home">首页</a><a href="#ai-works">AI 作品</a><a href="#edit-works">剪辑作品</a><a href="#ideas">灵感与计划</a><a href="#about">关于我</a>
+      </nav>
+      <button class="mail-button" id="copyEmail" type="button">联系我 <span aria-hidden="true">↗</span></button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="home">
+      <div class="shell hero-layout">
+        <div class="hero-copy"><p class="eyebrow">PERSONAL WORKS / 2026</p><h1>把想法做成<br><em>可被使用的作品。</em></h1><p class="hero-intro">我关注 AI 产品、体验设计与内容表达。这里放已经做过的、正在验证的，以及值得继续追问的东西。</p><a class="text-link" href="#ai-works">先看作品 <span>↓</span></a></div>
+        <div class="hero-index" aria-label="作品集统计"><div class="index-top"><span>INDEX / 03</span><span class="live-dot">● 记录中</span></div><div class="index-number">08</div><p>个作品与构想<br>持续更新的个人档案</p><div class="index-rule"></div><div class="index-notes"><span>AI 产品</span><strong>04</strong><span>剪辑实践</span><strong>02</strong><span>下一步</span><strong>02</strong></div></div>
+      </div>
+    </section>
+
+    <section class="work-section" id="ai-works">
+      <div class="shell"><div class="section-heading"><div><p class="eyebrow">01 / AI WORKS</p><h2>让复杂的技术，<br>变成自然的体验。</h2></div><p class="section-description">从翻译、学习到知识检索，我更在意 AI 如何嵌入真实工作流，而不是停留在功能演示。</p></div><div class="filter-bar" data-filter-group="ai"><span class="filter-label">FILTER</span><button class="filter active" data-filter="all" type="button">全部 <b>04</b></button><button class="filter" data-filter="shipped" type="button">已实现 <b>02</b></button><button class="filter" data-filter="prototype" type="button">原型中 <b>01</b></button><button class="filter" data-filter="collab" type="button">合作 <b>01</b></button></div><div class="works-grid" id="aiGrid"></div><p class="empty-state" id="aiEmpty" hidden>这个筛选下还没有公开作品。换一个条件试试。</p></div>
+    </section>
+
+    <section class="work-section alt" id="edit-works">
+      <div class="shell"><div class="section-heading"><div><p class="eyebrow">02 / EDITING WORKS</p><h2>剪辑是另一种<br><em>组织注意力的方式。</em></h2></div><p class="section-description">节奏、画面和声音共同完成叙事。以下内容是剪辑方向的样片记录，示例项目会明确标注，方便后续替换真实案例。</p></div><div class="filter-bar" data-filter-group="edit"><span class="filter-label">FILTER</span><button class="filter active" data-filter="all" type="button">全部 <b>02</b></button><button class="filter" data-filter="sample" type="button">示例待替换 <b>02</b></button></div><div class="works-grid" id="editGrid"></div><p class="empty-state" id="editEmpty" hidden>这个筛选下还没有公开作品。换一个条件试试。</p></div>
+    </section>
+
+    <section class="ideas-section" id="ideas"><div class="shell"><div class="section-heading compact"><div><p class="eyebrow">03 / NOTES & NEXT</p><h2>还没有答案，<br>但已经开始。</h2></div><p class="section-description">把灵感保留在可行动的尺度里：一个问题、一段实验，或一条下一步。</p></div><div class="idea-list" id="ideaList"></div></div></section>
+
+    <section class="about-section" id="about"><div class="shell about-layout"><div><p class="eyebrow">04 / ABOUT</p><h2>你好，我是<br><em>一个持续构建的人。</em></h2></div><div class="about-copy"><p>我在产品、代码和内容之间工作。喜欢把模糊的问题拆成清晰的界面，也喜欢把一次交付里的判断，沉淀成下一次可以复用的方法。</p><div class="about-facts"><div><span>BASE</span><strong>中国 · 远程协作</strong></div><div><span>FOCUS</span><strong>AI / 产品体验 / 内容</strong></div><div><span>STACK</span><strong>Java · Python · Vue</strong></div></div><button class="btn dark" id="copyEmailAbout" type="button">复制邮箱 <span>hello@crow5.studio</span></button></div></div></section>
+  </main>
+
+  <footer><div class="shell footer-row"><span class="brand"><span class="brand-mark">C5</span>作品集<span class="brand-dot">.</span></span><span>© 2026 / 个人作品记录</span><span class="mono">BUILD WITH INTENT</span></div></footer>
+
+  <div class="drawer-backdrop" id="drawerBackdrop" hidden><aside class="drawer" id="detailDrawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle"><div class="drawer-head"><span class="eyebrow">WORK DETAIL</span><button class="icon-button" id="closeDrawer" type="button" aria-label="关闭详情">×</button></div><div class="drawer-cover" id="drawerCover"></div><p class="drawer-meta" id="drawerMeta"></p><h2 id="drawerTitle"></h2><p class="drawer-summary" id="drawerSummary"></p><dl class="detail-fields"><div><dt>类型</dt><dd id="drawerType"></dd></div><div><dt>状态</dt><dd id="drawerStatus"></dd></div><div><dt>我的角色</dt><dd id="drawerRole"></dd></div><div><dt>技术 / 工具</dt><dd id="drawerTools"></dd></div></dl><div class="drawer-block"><h3>结果 / 边界</h3><p id="drawerBoundary"></p></div><div class="drawer-block"><h3>下一步</h3><p id="drawerNext"></p></div><button class="btn drawer-favorite" id="drawerFavorite" type="button">♡ <span>收藏这件作品</span></button></aside></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="./portfolio-v3.js"></script>
+</body>
+</html>
