@@ -61,3 +61,18 @@ personal-portfolio
 - 发布失败时继续服务上一稳定版本。
 - Java 后端采用 Spring Boot 模块化单体，MyBatis-Plus 负责数据访问，Flyway 负责 MySQL schema 版本管理。
 - 现有 Python/FastAPI 后端作为迁移前参考保留，Java 服务先兼容已确认的公开 API，再逐步替换旧运行入口。
+
+## 6. Java 后端包分层
+
+```text
+com.crow5.portfolio
+├── controller/       # HTTP 接口，publicapi 与 admin 分组
+├── service/          # 事务边界、状态流转和业务规则
+├── entity/           # MyBatis-Plus 数据库实体
+├── mapper/           # 数据访问接口
+├── dto/              # 请求参数对象
+├── config/            # Sa-Token、跨域等基础配置
+└── common/            # 统一响应和全局异常处理
+```
+
+`src/main/resources/` 保存 `application.yml` 和 Flyway 迁移；`src/test/java/` 按 `controller/`、`service/` 分组。旧 Python 实现继续保留在 `app/`、`alembic/` 和 `tests/`，不搬移、不删除、不与 Java 运行入口混用，待 Java 版本完成真实数据库和接口验收后再单独制定归档方案。
