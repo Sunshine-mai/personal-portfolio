@@ -19,6 +19,12 @@ backend/uploads/
 backend/logs/
 archive/backups/
 
+# Runtime process and check artifacts
+*.pid
+runtime-*.json
+runtime-*.html
+NUL
+
 # Frontend
 node_modules/
 .vite/
