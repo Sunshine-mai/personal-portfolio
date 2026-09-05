@@ -1,6 +1,8 @@
-package com.crow5.portfolio.project;
+package com.crow5.portfolio.controller.publicapi;
 
 import com.crow5.portfolio.common.ApiResponse;
+import com.crow5.portfolio.entity.Project;
+import com.crow5.portfolio.service.ProjectService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

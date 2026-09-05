@@ -1,6 +1,10 @@
-package com.crow5.portfolio.project;
+package com.crow5.portfolio.controller.publicapi;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.crow5.portfolio.entity.Project;
+import com.crow5.portfolio.mapper.ProjectMapper;
+import com.crow5.portfolio.mapper.RevisionMapper;
+import com.crow5.portfolio.service.ProjectService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -17,6 +21,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(PublicProjectController.class)
 class PublicProjectControllerTest {
+    @MockBean
+    private ProjectMapper projectMapper;
+
+    @MockBean
+    private RevisionMapper revisionMapper;
+
     @Autowired
     private MockMvc mockMvc;
 

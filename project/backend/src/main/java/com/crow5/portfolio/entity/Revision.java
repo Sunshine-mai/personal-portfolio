@@ -1,4 +1,4 @@
-package com.crow5.portfolio.project;
+package com.crow5.portfolio.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;

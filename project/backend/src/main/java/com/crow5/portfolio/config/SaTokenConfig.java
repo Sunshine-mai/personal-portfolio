@@ -1,4 +1,4 @@
-package com.crow5.portfolio.auth;
+package com.crow5.portfolio.config;
 
 import cn.dev33.satoken.interceptor.SaInterceptor;
 import org.springframework.context.annotation.Configuration;

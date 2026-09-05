@@ -1,4 +1,4 @@
-package com.crow5.portfolio.web;
+package com.crow5.portfolio.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

@@ -1,9 +1,16 @@
-package com.crow5.portfolio.project;
+package com.crow5.portfolio.controller.admin;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.crow5.portfolio.entity.Project;
+import com.crow5.portfolio.mapper.KnowledgeNodeMapper;
+import com.crow5.portfolio.mapper.LearningSummaryMapper;
+import com.crow5.portfolio.mapper.ProjectMapper;
+import com.crow5.portfolio.mapper.RevisionMapper;
+import com.crow5.portfolio.service.ProjectService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -15,9 +22,24 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = {AdminProjectController.class, com.crow5.portfolio.auth.AdminAuthController.class},
-        properties = "ADMIN_PASSWORD=secret")
+@SpringBootTest(properties = {
+        "ADMIN_PASSWORD=secret",
+        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration"
+})
+@AutoConfigureMockMvc
 class AdminProjectControllerTest {
+    @MockBean
+    private ProjectMapper projectMapper;
+
+    @MockBean
+    private RevisionMapper revisionMapper;
+
+    @MockBean
+    private KnowledgeNodeMapper knowledgeNodeMapper;
+
+    @MockBean
+    private LearningSummaryMapper learningSummaryMapper;
+
     @Autowired
     private MockMvc mockMvc;
 

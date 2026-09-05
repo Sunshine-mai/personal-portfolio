@@ -1,4 +1,4 @@
-package com.crow5.portfolio.auth;
+package com.crow5.portfolio.dto;
 
 import jakarta.validation.constraints.NotBlank;
 

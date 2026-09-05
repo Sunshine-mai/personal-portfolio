@@ -1,7 +1,8 @@
-package com.crow5.portfolio.auth;
+package com.crow5.portfolio.controller.admin;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.crow5.portfolio.common.ApiResponse;
+import com.crow5.portfolio.dto.LoginRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
