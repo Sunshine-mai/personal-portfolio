@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>作品集 / V5</title>
+  <link rel="stylesheet" href="portfolio-v5.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <div class="reading-line" aria-hidden="true"><span id="readingProgress"></span></div>
+  <header class="site-header">
+    <div class="shell nav-wrap">
+      <a href="#home" class="brand" aria-label="返回首页"><span class="brand-mark">C5</span><span>作品集</span><span class="brand-dot">.</span></a>
+      <nav class="site-nav" id="siteNav" aria-label="主导航">
+        <a href="#home" data-section="home" class="active">首页</a>
+        <a href="#ai-works" data-section="ai-works">AI 作品</a>
+        <a href="#edit-works" data-section="edit-works">剪辑作品</a>
+        <a href="#ideas" data-section="ideas">灵感与计划</a>
+        <a href="#about" data-section="about">关于我</a>
+      </nav>
+      <button id="menuToggle" class="menu-toggle" type="button" aria-expanded="false" aria-label="打开导航菜单">菜单 ☰</button>
+      <a class="contact-btn" href="mailto:hello@crow5.studio">联系我 ↗</a>
+    </div>
+  </header>
+  <main id="main">
+    <section class="story-section hero-section" id="home" data-section="home">
+      <div class="shell">
+        <p class="eyebrow reveal">PERSONAL WORKS / 2026</p>
+        <h1 class="hero-title reveal">把想法做成<br><em>可被使用的作品。</em></h1>
+        <p class="hero-sub reveal">我在 AI 产品、体验设计与内容表达之间工作。向下滚动，逐件打开已经完成的、正在验证的，以及准备开始的。</p>
+        <a class="hero-cta reveal" href="#ai-works">开始阅读 ↓</a>
+        <div class="hero-stats reveal">
+          <div class="stat-main"><span class="stat-label">INDEX / 04</span><strong>08</strong><span>个作品与构想</span></div>
+          <ul class="stat-list">
+            <li><span>AI 产品</span><strong>04</strong></li>
+            <li><span>剪辑实践</span><strong>02</strong></li>
+            <li><span>下一步</span><strong>02</strong></li>
+          </ul>
+        </div>
+        <div class="hero-works reveal">
+          <span class="hero-works-label">SELECTED WORKS</span>
+          <button class="hero-work" type="button" data-open="translator">
+            <img src="assets/v5/translator-home.png" alt="AI Translator 首页截图">
+            <span class="hero-work-name"><strong>AI Translator</strong><span>翻译 · 学英语 · 无广告</span></span>
+          </button>
+          <button class="hero-work" type="button" data-open="brain">
+            <img src="assets/v5/secondbrain-login.png" alt="AI Second Brain 登录页截图">
+            <span class="hero-work-name"><strong>AI Second Brain</strong><span>私有资料参与问答</span></span>
+          </button>
+        </div>
+      </div>
+    </section>
+    <section class="story-section work-section" id="ai-works" data-section="ai-works">
+      <div class="shell">
+        <div class="section-heading reveal">
+          <p class="eyebrow">01 / AI WORKS</p>
+          <h2>让复杂的技术，<br><em>变成自然的体验。</em></h2>
+          <p class="section-desc">向下滚动，逐件打开 AI 产品作品。封面来自项目实际运行界面。</p>
+        </div>
+        <div class="filter-bar reveal" data-filter-group="ai">
+          <span class="filter-label">FILTER</span>
+          <button class="filter active" type="button" data-filter="all">全部 04</button>
+          <button class="filter" type="button" data-filter="shipped">已实现 02</button>
+          <button class="filter" type="button" data-filter="prototype">原型中 01</button>
+          <button class="filter" type="button" data-filter="collab">合作 01</button>
+        </div>
+        <div class="work-grid" id="aiGrid"></div>
+        <p class="empty-state" id="aiEmpty" hidden>暂无该状态的 AI 作品。</p>
+        <div class="section-foot reveal"><span>02 / 05</span><span>AI 作品档案</span><span>继续向下打开剪辑实践</span></div>
+      </div>
+    </section>
+    <section class="story-section work-section edit-section" id="edit-works" data-section="edit-works">
+      <div class="shell">
+        <div class="section-heading reveal">
+          <p class="eyebrow">02 / EDITING WORKS</p>
+          <h2>剪辑是另一种<br><em>组织注意力的方式。</em></h2>
+          <p class="section-desc">真实片段截图整理中，当前展示预留位。</p>
+        </div>
+        <div class="filter-bar reveal" data-filter-group="edit">
+          <span class="filter-label">FILTER</span>
+          <button class="filter active" type="button" data-filter="all">全部 02</button>
+          <button class="filter" type="button" data-filter="sample">素材待替换 02</button>
+        </div>
+        <div class="work-grid" id="editGrid"></div>
+        <p class="empty-state" id="editEmpty" hidden>暂无该状态的剪辑作品。</p>
+        <div class="section-foot reveal"><span>03 / 05</span><span>剪辑作品档案</span><span>继续向下打开灵感</span></div>
+      </div>
+    </section>
+    <section class="story-section ideas-section" id="ideas" data-section="ideas">
+      <div class="shell">
+        <div class="section-heading reveal">
+          <p class="eyebrow">03 / NOTES &amp; NEXT</p>
+          <h2>还没有答案，<br><em>但已经开始。</em></h2>
+          <p class="section-desc">把灵感保留在可行动的尺度里：一个问题、一段实验，或一条下一步。</p>
+        </div>
+        <div id="ideaList" class="idea-list"></div>
+        <div class="section-foot reveal"><span>04 / 05</span><span>灵感与计划</span><span>继续向下认识我</span></div>
+      </div>
+    </section>
+    <section class="story-section about-section" id="about" data-section="about">
+      <div class="shell about-grid">
+        <div class="section-heading reveal">
+          <p class="eyebrow">04 / ABOUT</p>
+          <h2>你好，我是<br><em>一个持续构建的人。</em></h2>
+        </div>
+        <div class="about-body reveal">
+          <p>我在产品、代码和内容之间工作。喜欢把模糊的问题拆成清晰的界面，也喜欢把一次交付里的判断，沉淀成下一次可以复用的方法。</p>
+          <dl class="about-facts">
+            <div><dt>BASE</dt><dd>中国 · 远程协作</dd></div>
+            <div><dt>FOCUS</dt><dd>AI / 产品体验 / 内容</dd></div>
+            <div><dt>STACK</dt><dd>Java · Python · Vue</dd></div>
+          </dl>
+          <button id="copyEmail" class="copy-btn" type="button">复制邮箱 hello@crow5.studio</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <div class="shell footer-wrap">
+      <span class="footer-brand">C5 作品集<span class="brand-dot">.</span></span>
+      <span>© 2026 / 个人作品记录</span>
+      <span>BUILD WITH INTENT</span>
+      <a href="#home">回到开头 ↑</a>
+    </div>
+  </footer>
+  <div class="drawer-backdrop" id="drawerBackdrop" hidden>
+    <aside class="drawer" role="dialog" aria-modal="true" aria-label="作品详情">
+      <div class="drawer-head">
+        <span class="drawer-tag">WORK DETAIL</span>
+        <button id="closeDrawer" class="icon-button" type="button" aria-label="关闭详情">×</button>
+      </div>
+      <figure class="drawer-cover" id="drawerCover"></figure>
+      <p class="drawer-meta" id="drawerMeta"></p>
+      <h3 class="drawer-title" id="drawerTitle"></h3>
+      <p class="drawer-summary" id="drawerSummary"></p>
+      <dl class="drawer-fields">
+        <div><dt>类型</dt><dd id="drawerType"></dd></div>
+        <div><dt>状态</dt><dd id="drawerStatus"></dd></div>
+        <div><dt>我的角色</dt><dd id="drawerRole"></dd></div>
+        <div><dt>技术 / 工具</dt><dd id="drawerTools"></dd></div>
+      </dl>
+      <h4 class="drawer-sub">结果 / 边界</h4>
+      <p id="drawerBoundary"></p>
+      <h4 class="drawer-sub">下一步</h4>
+      <p id="drawerNext"></p>
+      <button id="drawerFavorite" class="favorite-btn" type="button" data-favorite="">♡ <span>收藏这件作品</span></button>
+    </aside>
+  </div>
+  <div id="toast" role="status"></div>
+  <script src="portfolio-v5.js"></script>
+</body>
+</html>
