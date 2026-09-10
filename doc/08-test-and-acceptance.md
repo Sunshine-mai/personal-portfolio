@@ -63,6 +63,11 @@
 ## 8. Java 迁移阶段测试状态
 
 - 当前 Java 后端单元测试和 MockMvc 接口测试可以在无数据库环境下执行，覆盖应用上下文、公开项目接口、管理员认证接口和健康接口。
-- 当前环境未安装 MySQL 客户端，也未提供 Docker，因此不能把 MySQL/Flyway 集成测试标记为通过。
-- MySQL 环境可用后，必须补做从零建库迁移、重复启动幂等、数据库接口读写、事务失败回滚和测试数据库隔离验证。
+- 本地 MySQL 8.0 已可用（服务 MySQL80，端口 3306，库 `personal_portfolio`）。2026-09-10 已在本库完成下列真实验证：
+  - 从零建库迁移：清空全部表后由 Flyway 依次执行 V1 → V2 → V3 成功。
+  - 重复启动幂等：第二次启动输出 `Successfully validated 3 migrations` 与 `Schema is up to date. No migration necessary.`。
+  - 迁移完整性：V1 校验和 `1881988467`、V3 校验和 `1707037090` 与事故前记录一致，重建后的 schema 与重建前逐列逐索引一致。
+  - 应用可用性：`/api/health`、`/api/public/projects`、`/api/public/learning-summaries` 返回 200；管理员登录错误口令返回 401、空口令返回 400、无令牌写入管理接口返回 401。
+- 仍未完成：数据库接口读写（真实数据的创建/读取链路）、事务失败回滚、测试数据库隔离。
+- 迁移事故的完整过程见 `doc/21-migration-incident-and-recovery.md`。
 - 浏览器自动化工具未就绪；原型的页面交互、键盘操作和 PC/平板/手机响应式验收仍属于待完成证据。
