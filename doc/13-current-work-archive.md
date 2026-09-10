@@ -1,5 +1,47 @@
 # 当前工作存档
 
+## 2026-09-10 更新
+
+以下内容为最新状态，覆盖本文件下方 2026-08-24 存档的"当前做到哪一步"部分；08-24 存档保留为历史记录，不原地改写。
+
+### 当前做到哪一步
+
+V5 深色画廊原型已完成，并已迁移到 `project/frontend/` 的 Vue 3 正式前端；Java 后端在本地 MySQL 8.0 上完成从零迁移验证。当前处于"补齐后端审核发布链路与录入真实内容"前。
+
+### 本轮完成
+
+- V5 信息架构收敛：主线改为代表项目，大学新闻网归入代表项目，去掉用占位卡凑数的剪辑作品。
+- V5 原型迁移到 Vue 正式前端，截图迁入 `project/frontend/public/assets/v5/`。
+- AI Translator 对外展示名改为 LexiFlow（ADR-013）。
+- 修复 V2 迁移丢失事故：复建迁移文件、清空无数据的本地库并从零执行 V1 → V2 → V3，
+  移除 `ignore-migration-patterns` 兜底。详见 `doc/21-migration-incident-and-recovery.md`。
+- 停止跟踪 `project/frontend/dist/` 构建产物。
+
+### 已验证
+
+- 前端 `vite build` 通过，正确产出 4 张 v5 截图。
+- 后端在无任何 ignore 配置下启动成功；Flyway 从零迁移、重复启动幂等（`No migration necessary`）。
+- V1 校验和 `1881988467`、V3 校验和 `1707037090` 与事故前记录一致；重建后 schema 与重建前一致。
+- `/api/health`、`/api/public/projects`、`/api/public/learning-summaries` 返回 200；管理员登录错误口令 401、空口令 400、无令牌写入 401。
+
+### 待验证
+
+- 后端审核发布链路尚未实现：approve、reject、publish、unpublish、审计事件。
+- 公开知识节点接口未过滤 `published`；revision number 硬编码为 1。
+- 数据库接口读写、事务回滚和测试库隔离尚未验证。
+- 正式前端与 V5 原型的浏览器级交互和响应式验收记录待补。
+- `projects` 表为空，公开页面当前使用前端回退数据，三个真实项目均未录入。
+- 尚未推送远程仓库。
+
+### 本地数据库
+
+本地 MySQL 8.0 的 `personal_portfolio` 库已于 2026-09-10 由 Flyway 从零重建，7 张表，业务数据为空。
+重建前的 schema 指纹与 Flyway 历史作为事故证据保留在 `doc/21`。
+
+---
+
+## 2026-08-24 存档
+
 存档时间：2026-08-24
 
 ## 当前做到哪一步

@@ -11,7 +11,9 @@
 
 ## 当前状态
 
-V2 产品与工程蓝图、高保真交互原型和项目证据台账已完成；Java 后端基础结构和项目审核起始链路已完成，前端正式联调等待站点所有者确认视觉方向。
+V5 深色画廊原型已完成并迁移到 `project/frontend/` 的 Vue 3 正式前端；Java 后端已完成公开读取、管理员会话、项目草稿创建和送审基础链路，并在本地 MySQL 8.0 上完成从零迁移验证。审核通过、发布、下线、审计事件及其余 V2 实体仍待实现，真实项目内容尚未录入数据库。
+
+展示名与仓库名的对应关系见 `doc/10-decision-log.md` 的 ADR-013（AI Translator 对外展示名为 LexiFlow）。
 
 ## 开发配置
 
@@ -67,16 +69,28 @@ project/backend/src/main/java/com/crow5/portfolio/
 - `doc/10-decision-log.md`：决策存证
 - `doc/11-skill-workflow.md`：技能协作流程
 - `doc/12-learning-compound-loop.md`：复利学习闭环
+- `doc/13-current-work-archive.md`：当前工作存档
 - `doc/14-portfolio-v2-evidence-inventory.md`：V2 项目证据台账
 - `doc/15-portfolio-v2-product-and-engineering-blueprint.md`：V2 产品与工程蓝图
-- `prototype/portfolio-v2.html`：V2 高保真交互原型
+- `doc/16-portfolio-v3-prototype.md`：V3 作品优先原型
+- `doc/17-portfolio-v4-scroll-story.md`：V4 滚动叙事原型
+- `doc/18-portfolio-v5-premium-gallery.md`：V5 深色画廊原型
+- `doc/19-portfolio-v5-optimization-plan.md`：V5 信息架构收敛优化
+- `doc/20-portfolio-vue-migration.md`：V5 正式前端迁移记录
+- `doc/21-migration-incident-and-recovery.md`：V2 迁移丢失事故与恢复记录
+- `prototype/portfolio-v5.html`：V5 高保真交互原型（V2 至 V4 原型保留为回滚基线）
 
 ## 重要约束
 
-技术栈、端口和数据库配置已记录；V2 原型尚待确认。Java 版本当前已实现健康检查、公开项目读取、管理员会话、项目草稿创建、修订快照和草稿送审基础链路；批准、发布快照、审计事件及其余 V2 实体仍在后续阶段实现。
+技术栈、端口和数据库配置已记录。Java 版本当前已实现健康检查、公开项目读取、管理员会话、项目草稿创建、修订快照和草稿送审基础链路；批准、驳回、发布快照、下线、审计事件及其余 V2 实体仍在后续阶段实现，因此在补齐发布链路前，Java 后端无法产出任何公开内容。
+
+迁移文件一经应用即视为不可变资产：必须与代码同批提交，不得使用 `ignore-migration-patterns` 之类的配置掩盖迁移状态不一致（见 ADR-012 与 `doc/21`）。
 
 ## 已知缺口
 
 - 真实项目资料、贡献边界、证据和授权尚未人工确认，当前不写入真实内容，界面使用空状态或安全占位文案。
-- 浏览器自动化仍需在具备浏览器验证工具的环境中执行；当前已补齐兼容迁移、项目更新、拒绝和下线接口及核心接口测试。V2 原型还需要浏览器级交互和响应式验收记录。
+- 公开前端在数据库为空时使用前端内置的安全回退数据；`/api/public/projects` 当前返回空数组。
+- 审核通过、发布、下线和审计事件接口尚未实现，公开内容目前无法通过接口产生。
+- 浏览器自动化仍需在具备浏览器验证工具的环境中执行；V5 原型与 Vue 页面的浏览器级交互和响应式验收记录待补。
+- `prototype/assets/v5/` 与 `project/frontend/public/assets/v5/` 是两处截图副本，正式部署前需确认以哪一处为准。
 - 不执行旧项目源码；`ai-translator` 与未来实验平台保持运行时和数据库隔离。
