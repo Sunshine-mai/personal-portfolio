@@ -1,107 +1,92 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
-const FALLBACK_PROJECTS = [
-  { id: 1, slug: 'team-project', title: '协作项目', summary: '第一次真正进入团队开发。重点展示协作边界、负责模块、联调经验，以及从这里摸进编程门道的过程。', background: '在合作项目中理解需求拆解、前后端联调、模块边界和团队交付节奏。', outcome: '待完成公开授权、贡献边界和展示材料审查。', role: '明确个人负责模块，诚实区分团队成果与个人贡献。', project_type: 'COLLABORATIVE', status: 'PUBLISHED', published: true },
-  { id: 2, slug: 'second-brain', title: 'AI Second Brain', summary: '第一个独立全栈项目：以 Java/Spring Boot 构建 RAG 知识库聊天系统，完整经历从 Demo 到部署。', background: '把文档上传、切片、检索和对话连接起来，让知识库能够被自然地查询。', outcome: '已完成独立项目闭环，正在整理公开版本与贡献证据。', role: '独立完成产品设计、服务分层、RAG 链路与部署。', project_type: 'SOLO', status: 'PUBLISHED', published: true },
-  { id: 3, slug: 'translator', title: 'AI Translator', summary: '无广告 AI 翻译与英语学习工具。用 FastAPI、Vue 3、Redis 和 Docker，把翻译结果沉淀为可复习的学习闭环。', background: '为英语学习者提供没有广告干扰、可以沉淀生词并持续复习的翻译体验。', outcome: '已完成核心闭环，下一步是整理正式测试与公开版本审查。', role: '独立完成前后端实现、缓存策略、限流和学习闭环。', project_type: 'INDEPENDENT', status: 'PUBLISHED', published: true },
-]
-const FALLBACK_KNOWLEDGE = [
-  { id: 'python', label: 'Python', category: '正在巩固', description: '当前主线：从 0 基础走向能读懂并改造真实项目。' },
-  { id: 'translator', label: 'AI Translator', category: 'PROJECT 03', description: 'Python/FastAPI 实战案例：翻译、学习闭环、缓存、限流与部署。' },
-  { id: 'fastapi', label: 'FastAPI', category: 'API architecture', description: '负责 API 路由、依赖注入、异常和健康检查。' },
-  { id: 'rag', label: 'RAG', category: 'PROJECT 02', description: '在 AI Second Brain 中完成文档检索与知识库对话链路。' },
-]
-const FALLBACK_LEARNING = [
-  { title: '从 Java 进入 Python', summary: '不是抛弃已有经验，而是用 Spring Boot 的调用链去理解 FastAPI 的路由、依赖注入和服务分层。' },
-  { title: '把功能做成学习闭环', summary: '翻译不再止于结果：查词、收藏、复习和统计让产品真正服务英语学习。' },
-  { title: '从验证脚本走向正式测试', summary: '继续补齐 pytest、接口测试和浏览器验证，把“我测试过”变成可重复的质量证据。' },
-  { title: '三次复用才算理解', summary: '在 ai-dev-lab 学概念，在正式项目里落地，再在作品集里用自己的话说明取舍。' },
+const fallbackProjects = [
+  { id: 1, slug: 'ai-translator', title: 'LexiFlow', summary: '面向英语学习者的无广告翻译与生词学习工具，把一次翻译延展为可持续的学习闭环。', background: '翻译、收藏、复习和统计共同组成学习闭环。', outcome: '已实现核心闭环，等待补齐正式发布证据。', role: '产品设计、全栈开发、部署与验证规划', projectType: 'AI 产品 / 学习工具', project_type: 'INDEPENDENT', status: '已实现 · 待补正式发布证据', tags: ['FastAPI', 'Vue 3', '学习闭环'], image: '/assets/v5/translator-home.png' },
+  { id: 2, slug: 'ai-second-brain', title: 'AI Second Brain', summary: '从文档解析到 SSE 对话的个人知识库系统，让私有资料真正参与日常问答。', background: '把文档上传、切片、检索和流式对话连接起来。', outcome: '已完成独立项目闭环，正在整理公开版本证据。', role: '产品建模、Java 全栈开发、测试与部署', projectType: 'AI 产品 / 知识库 RAG', project_type: 'SOLO', status: '已实现 · 发布前复核', tags: ['RAG', 'Spring Boot', 'SSE'], image: '/assets/v5/brain-chat.png' },
+  { id: 3, slug: 'zhiheng-teaching', title: '高中个性化教学平台 · 知衡', summary: '围绕题库、考试、掌握度、错题和练习构建三角色教学分析闭环。', background: '用清晰的数据流连接管理员、老师和学生的日常工作。', outcome: '高保真原型，尚未进入正式开发。', role: '产品定义、信息架构、交互原型与验收设计', projectType: '业务原型 / 教学分析', project_type: 'PROTOTYPE', status: '高保真原型 · 未进入开发', tags: ['原型', '三角色', '数据闭环'], image: '/assets/v5/teaching-home.png' },
+  { id: 4, slug: 'university-news', title: '大学新闻网', summary: 'PC 管理端、移动 Web 与微信小程序共享后端 API 的校园新闻系统。', background: '合作项目，覆盖内容管理、多端展示和文件存储。', outcome: '已授权展示，个人贡献边界待补充。', role: '个人负责范围待确认；此处仅记录团队项目能力', projectType: '内容平台 / 多端体验', project_type: 'COLLABORATIVE', status: '已授权展示 · 贡献边界待补充', tags: ['合作', '多端', '内容管理'], image: '/assets/v5/news-cover.png' },
 ]
 
+const projectFilters = [{ key: 'all', label: '全部' }, { key: 'independent', label: '独立开发' }, { key: 'prototype', label: '原型方案' }, { key: 'collab', label: '合作项目' }]
+const methods = [
+  ['01', '定义问题', '目标、用户、数据流和明确不做的范围。'],
+  ['02', '记录取舍', '比较方案，说明选择、限制与后续代价。'],
+  ['03', '多层验证', '单元、接口、浏览器和部署检查共同形成证据。'],
+  ['04', '发布复盘', '保留版本、隐私边界、回滚方式和下一步。'],
+]
 const projects = ref([])
-const knowledge = ref([])
-const summaries = ref([])
-const activeNode = ref(null)
-const detail = ref(null)
+const activeFilter = ref('all')
+const selectedProject = ref(null)
 const menuOpen = ref(false)
 const loading = ref(true)
 const apiStatus = ref('正在连接后端…')
 const toastMessage = ref('')
 let toastTimer
 
-const navItems = [
-  { href: '#projects', label: '项目' }, { href: '#network', label: '知识网络' },
-  { href: '#learning', label: '学习轨迹' }, { href: '#method', label: '交付方法' }, { href: '#about', label: '关于' },
-]
-const selectedNode = computed(() => activeNode.value || knowledge.value[1] || FALLBACK_KNOWLEDGE[1])
+const filteredProjects = computed(() => projects.value.filter(project => activeFilter.value === 'all' || project.filter === activeFilter.value))
+const publishedProjects = computed(() => projects.value.filter(project => project.project_type === 'INDEPENDENT' || project.filter === 'independent'))
 
 async function getJson(path) {
   const response = await fetch(path)
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   return response.json()
 }
-async function loadPublicData() {
+function normalizeProject(project, index) {
+  const fallback = fallbackProjects[index % fallbackProjects.length]
+  const type = String(project.projectType || project.project_type || fallback.project_type).toUpperCase()
+  const filter = type.includes('PROTOTYPE') ? 'prototype' : type.includes('COLLAB') ? 'collab' : 'independent'
+  return { ...fallback, ...project, projectType: project.projectType || project.project_type || fallback.projectType, project_type: type, filter, tags: fallback.tags }
+}
+async function loadProjects() {
   loading.value = true
   try {
-    const [p, k, l] = await Promise.all([
-      getJson('/api/public/projects'), getJson('/api/public/knowledge/nodes'), getJson('/api/public/learning-summaries'),
-    ])
-    projects.value = (p.data?.length ? p.data : FALLBACK_PROJECTS).slice().sort((a, b) => a.id - b.id)
-    knowledge.value = k.data?.length ? k.data.map(node => ({ ...node, description: node.description || `${node.label}：公开知识节点。` })) : FALLBACK_KNOWLEDGE
-    summaries.value = l.data?.length ? l.data : FALLBACK_LEARNING
+    const response = await getJson('/api/public/projects')
+    const data = Array.isArray(response.data) && response.data.length ? response.data : fallbackProjects
+    projects.value = data.map(normalizeProject)
     apiStatus.value = '后端已连接 · 内容来自公开 API'
   } catch {
-    projects.value = FALLBACK_PROJECTS
-    knowledge.value = FALLBACK_KNOWLEDGE
-    summaries.value = FALLBACK_LEARNING
+    projects.value = fallbackProjects.map(normalizeProject)
     apiStatus.value = '后端不可用 · 当前显示安全静态回退数据'
   } finally { loading.value = false }
 }
-async function checkHealth() {
-  apiStatus.value = '正在检查后端…'
-  try { await getJson('/api/health'); apiStatus.value = '后端已连接 · 健康检查通过' } catch { apiStatus.value = '后端未启动 · 当前仍可浏览静态内容' }
-}
 async function openProject(project) {
-  try { detail.value = (await getJson(`/api/public/projects/${project.slug}`)).data || project } catch { detail.value = project }
+  try { selectedProject.value = (await getJson(`/api/public/projects/${project.slug}`)).data || project } catch { selectedProject.value = project }
   document.body.style.overflow = 'hidden'
 }
-function closeProject() { detail.value = null; document.body.style.overflow = '' }
-function selectNode(node) { activeNode.value = node; showToast(`已定位知识节点：${node.label}`) }
-async function copyEmail() {
-  try { await navigator.clipboard.writeText('hello@portfolio.local'); showToast('联系邮箱已复制') } catch { showToast('联系邮箱：hello@portfolio.local') }
-}
+function closeProject() { selectedProject.value = null; document.body.style.overflow = '' }
 function showToast(message) { toastMessage.value = message; clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastMessage.value = '' }, 2400) }
+async function copyEmail() {
+  try { await navigator.clipboard.writeText('hello@crow5.studio'); showToast('邮箱已复制') } catch { showToast('联系邮箱：hello@crow5.studio') }
+}
 function closeMenu() { menuOpen.value = false }
-onMounted(() => { loadPublicData(); window.addEventListener('keydown', event => { if (event.key === 'Escape') { closeProject(); closeMenu() } }) })
+function onKeydown(event) { if (event.key === 'Escape') { closeProject(); closeMenu() } }
+onMounted(() => { loadProjects(); window.addEventListener('keydown', onKeydown) })
+onUnmounted(() => { window.removeEventListener('keydown', onKeydown); document.body.style.overflow = '' })
 </script>
 
 <template>
-  <div id="top" class="portfolio-shell">
-    <header class="topbar"><div class="container nav">
-      <a class="brand" href="#top"><span class="brand-mark">C5</span><span>工程档案馆</span></a>
-      <nav class="nav-links" :class="{ open: menuOpen }" aria-label="主导航"><a v-for="item in navItems" :key="item.href" :href="item.href" @click="closeMenu">{{ item.label }}</a></nav>
-      <div class="nav-actions"><button class="icon-btn" type="button" aria-label="复制联系邮箱" @click="copyEmail">@</button><button class="menu-btn" type="button" :aria-expanded="menuOpen" aria-label="打开菜单" @click="menuOpen = !menuOpen">☰</button></div>
+  <div class="portfolio-shell" id="home">
+    <header class="topbar"><div class="shell nav-wrap">
+      <a class="brand" href="#home"><span class="brand-mark">C5</span><span>个人作品集</span></a>
+      <nav class="nav-links" :class="{ open: menuOpen }" aria-label="主导航"><a href="#projects" @click="closeMenu">代表项目</a><a href="#edit-works" @click="closeMenu">视觉与剪辑</a><a href="#method" @click="closeMenu">工程方法</a><a href="#about" @click="closeMenu">关于我</a></nav>
+      <div class="nav-tools"><button class="icon-button" type="button" aria-label="复制邮箱" @click="copyEmail">@</button><button class="menu-button" type="button" :aria-expanded="menuOpen" aria-label="打开导航" @click="menuOpen = !menuOpen">☰</button></div>
     </div></header>
 
     <main>
-      <section class="hero"><div class="container hero-grid"><div><p class="eyebrow">Software development / AI applications</p><h1>我做过什么，<br />这里有完整记录。</h1><p class="hero-copy">这是我的项目、技术选择和开发记录。你可以先看结果，也可以继续往下看我怎么做、怎么测试，以及哪里还在学习。</p><div class="hero-actions"><a class="btn btn-primary" href="#projects">查看代表项目 <span>↗</span></a><a class="btn btn-ghost" href="#method">了解我的交付方法</a></div></div><div class="fact-index"><div class="fact"><span>FOCUS</span><strong>AI 应用开发 / 全栈</strong></div><div class="fact"><span>PROJECTS</span><strong>03 个代表项目</strong></div><div class="fact"><span>STACKS</span><strong>Java → Python</strong></div><div class="fact"><span>WORKFLOW</span><strong>设计 · 实现 · 测试 · 交付</strong></div><div class="fact"><span>STATUS</span><strong class="status-open">开放合作</strong></div></div></div></section>
+      <section class="hero-section" id="hero"><div class="shell hero-grid"><div class="hero-copy-block"><p class="eyebrow">SOFTWARE DEVELOPMENT / AI APPLICATIONS</p><h1>把复杂的问题，<br /><em>做成可以使用的产品。</em></h1><p class="hero-copy">这里记录我做过的产品、技术选择和验证过程。先看结果，再往下看我怎么定义、实现和交付。</p><div class="hero-actions"><a class="button primary" href="#projects">查看代表项目 <span>↗</span></a><a class="text-link" href="#method">了解我的工作方式</a></div></div><div class="hero-facts"><div><span>FOCUS</span><strong>AI 应用 / 全栈开发</strong></div><div><span>PROJECTS</span><strong>{{ publishedProjects.length || 2 }} 个独立项目</strong></div><div><span>STACK</span><strong>Java · Python · Vue</strong></div><div><span>STATUS</span><strong class="warm">开放合作</strong></div></div></div></section>
 
-      <section id="projects" class="section"><div class="container"><div class="section-head"><div><p class="eyebrow">Projects / 01—03</p><h2 class="section-title">我做过的三个项目。</h2></div><p class="section-intro">从团队协作开始，后来独立完成 Java 项目，再用 Python 做了 AI Translator。每个项目都保留了当时的做法和结果。</p></div><p v-if="loading" class="api-notice">正在读取已发布内容…</p><p v-else class="api-notice">{{ apiStatus }}</p><div class="project-grid"><article v-for="(project, index) in projects" :key="project.slug" class="project-card" :class="{ featured: index === 2 }"><span class="project-number">PROJECT {{ String(index + 1).padStart(2, '0') }} · {{ project.project_type }}</span><h3>{{ project.title }}</h3><p>{{ project.summary }}</p><div class="tags"><span class="tag">{{ index === 0 ? 'Java' : index === 1 ? 'Spring Boot' : 'FastAPI' }}</span><span class="tag">{{ index === 0 ? 'Vue 3' : index === 1 ? 'RAG' : 'Vue 3' }}</span><span class="tag">{{ index === 0 ? 'Teamwork' : index === 1 ? 'Java' : 'Redis' }}</span></div><button class="project-link" type="button" @click="openProject(project)">查看案例 ↗</button></article></div></div></section>
+      <section class="content-section projects-section" id="projects"><div class="shell"><div class="section-heading"><div><p class="eyebrow">01 / REPRESENTATIVE PROJECTS</p><h2>做过的项目，<br /><em>按真实状态呈现。</em></h2></div><p>不把原型写成已上线，不把团队成果写成个人战绩。每个案例都保留完成度、角色和下一步。</p></div><div class="filter-row" role="tablist" aria-label="项目筛选"><button v-for="filter in projectFilters" :key="filter.key" type="button" :class="{ active: activeFilter === filter.key }" role="tab" :aria-selected="activeFilter === filter.key" @click="activeFilter = filter.key">{{ filter.label }}</button></div><p v-if="loading" class="api-status">正在读取已发布内容…</p><p v-else class="api-status">{{ apiStatus }}</p><div class="project-list"><article v-for="(project, index) in filteredProjects" :key="project.slug || project.id" class="project-card"><div class="project-card-body"><span class="project-index">0{{ index + 1 }} / PROJECT</span><span class="project-meta">{{ project.projectType }}</span><h3>{{ project.title }}</h3><p>{{ project.summary }}</p><div class="tag-list"><span v-for="tag in project.tags" :key="tag">{{ tag }}</span></div><button class="card-link" type="button" @click="openProject(project)">查看案例 <span>↗</span></button></div><div class="project-visual" :class="{ 'has-image': project.image }" :style="project.image ? { backgroundImage: `url(${project.image})` } : {}"><span v-if="!project.image">VISUAL<br />EVIDENCE</span><span v-else class="visual-label">公开截图</span></div></article></div></div></section>
 
-      <section id="evidence" class="section"><div class="container"><div class="section-head"><div><p class="eyebrow">How I work</p><h2 class="section-title">我通常这样做项目。</h2></div><p class="section-intro">先把问题说清楚，再动手实现。过程中会记录取舍，并用实际测试确认结果。</p></div><div class="evidence-grid"><article class="evidence"><span>01 / PLAN</span><h3>先把问题拆开</h3><p>确认目标、范围、数据怎么流，以及这次不做什么。</p></article><article class="evidence"><span>02 / TEST</span><h3>做完以后再验证</h3><p>跑单元测试、接口测试和浏览器操作，不只看页面能不能打开。</p></article><article class="evidence"><span>03 / REVIEW</span><h3>把经验留下来</h3><p>遇到的问题、做过的取舍和下一步计划，都会写进记录。</p></article></div></div></section>
+      <section class="content-section edit-section" id="edit-works"><div class="shell"><div class="section-heading"><div><p class="eyebrow">02 / VISUAL &amp; EDITING</p><h2>视觉和剪辑，<br /><em>真实素材整理中。</em></h2></div><p>这里会放经过授权的剪辑练习与视觉实验。当前只保留方向和结构，不用虚构作品填满版面。</p></div><div class="holding-row"><span>EDIT 01 / MATERIAL HOLD</span><div><h3>一条信息的三种节奏</h3><p>等待经授权的真实片段截图，补充片长、版本和发布链接。</p></div><span class="hold-status">待补真实素材</span></div></div></section>
 
-      <section id="network" class="section"><div class="container"><div class="section-head"><div><p class="eyebrow">Knowledge / relation map</p><h2 class="section-title">我正在学习什么。</h2></div><p class="section-intro">点击一个主题，可以看到它和哪些项目有关，以及我目前掌握到什么程度。</p></div><div class="network-layout"><div class="network" aria-label="可交互知识网络"><span class="network-line line-a"></span><span class="network-line line-b"></span><span class="network-line line-c"></span><button v-for="(node, index) in knowledge.slice(0, 4)" :key="node.id" class="node" :class="[`node-${String.fromCharCode(97 + index)}`, { selected: selectedNode.id === node.id }]" type="button" @click="selectNode(node)"><span>{{ node.label }}<small>{{ node.category }}</small></span></button></div><aside class="network-detail"><p class="eyebrow">Selected node</p><h3>{{ selectedNode.label }}</h3><p>{{ selectedNode.description }}</p><ul class="network-list"><li><span>USED IN</span> 翻译链路、缓存、限流、部署</li><li><span>DECISION</span> SQLite 开发降门槛，生产切 PostgreSQL</li><li><span>NEXT</span> 补强正式测试与原理理解</li></ul></aside></div></div></section>
+      <section class="content-section method-section" id="method"><div class="shell"><div class="section-heading"><div><p class="eyebrow">03 / HOW I WORK</p><h2>从想法到可以交付，<br /><em>每一步都留下证据。</em></h2></div><p>我会先定义问题和边界，再小步实现，用测试和发布记录确认结果。</p></div><div class="method-list"><article v-for="method in methods" :key="method[0]"><span>{{ method[0] }}</span><h3>{{ method[1] }}</h3><p>{{ method[2] }}</p></article></div></div></section>
 
-      <section id="learning" class="section"><div class="container"><div class="section-head"><div><p class="eyebrow">Learning notes</p><h2 class="section-title">边做项目，边补基础。</h2></div><p class="section-intro">详细学习过程放在 ai-dev-lab，这里只展示和项目有关的几个阶段。</p></div><div class="timeline"><article v-for="(item, index) in summaries" :key="item.title" class="timeline-item"><span class="date">{{ index === 0 ? '2026.06' : index === 1 ? '2026.08' : index === 2 ? 'NEXT' : 'LAB' }}</span><div><h3>{{ item.title }}</h3><p>{{ item.summary }}</p></div></article></div></div></section>
-
-      <section id="method" class="section"><div class="container"><div class="section-head"><div><p class="eyebrow">Project workflow</p><h2 class="section-title">从想法到可以交付。</h2></div><p class="section-intro">我会把工作拆成几步，每一步都有结果，不把问题留到最后一起处理。</p></div><div class="method-grid"><article v-for="item in [{ n: '01', t: '定义问题', d: '目标、用户、边界和不做什么。' }, { n: '02', t: '记录决策', d: '比较方案，解释选择与代价。' }, { n: '03', t: '小步实现', d: '每个功能独立可运行和可验证。' }, { n: '04', t: '多层验证', d: '单元、接口、浏览器和部署检查。' }, { n: '05', t: '交付复盘', d: '版本、隐私、证据、回滚和经验沉淀。' } ]" :key="item.n" class="method"><span>{{ item.n }}</span><b>{{ item.t }}</b><p>{{ item.d }}</p></article></div></div></section>
-
-      <section id="about" class="section about"><div class="container"><p class="eyebrow">About me</p><h2 class="section-title">我还在学习，但不会只停在会用。</h2><p>我目前的方向是软件开发和 AI 应用开发。过去主要靠项目实践积累经验，现在一边维护已有项目，一边通过 ai-dev-lab 补 Python、Java 和大模型相关基础。</p><div class="hero-actions"><button class="btn btn-primary" type="button" @click="copyEmail">复制联系邮箱</button><button class="btn btn-ghost" type="button" @click="checkHealth">检查后端连接</button></div><p class="connection-status" role="status">{{ apiStatus }}</p></div></section>
+      <section class="content-section about-section" id="about"><div class="shell about-grid"><div><p class="eyebrow">04 / ABOUT</p><h2>一个持续构建，<br /><em>也持续校准的人。</em></h2></div><div class="about-copy"><p>我在产品、代码和内容之间工作。喜欢把模糊的问题拆成清晰的界面，也喜欢把一次交付里的判断，沉淀成下一次可以复用的方法。</p><dl><div><dt>BASE</dt><dd>中国 · 远程协作</dd></div><div><dt>FOCUS</dt><dd>AI / 产品体验 / 内容</dd></div><div><dt>STACK</dt><dd>Java · Python · Vue</dd></div></dl><button class="button primary" type="button" @click="copyEmail">联系我 <span>↗</span></button></div></div></section>
     </main>
-    <footer><div class="container footer-grid"><div><div class="brand"><span class="brand-mark">C5</span><span>工程档案馆</span></div><p>一个持续更新的个人工程作品集。内容以公开发布快照为准，不承载实验运行。</p></div><div class="footer-links"><a href="#projects">PROJECTS</a><a href="#network">KNOWLEDGE</a><a href="#about">CONTACT</a></div></div></footer>
 
-    <div v-if="detail" class="drawer-backdrop" role="presentation" @click.self="closeProject"><aside class="drawer" role="dialog" aria-modal="true"><button class="drawer-close" aria-label="关闭项目详情" @click="closeProject">×</button><p class="eyebrow">PROJECT · {{ detail.project_type }}</p><h2>{{ detail.title }}</h2><p class="drawer-lead">{{ detail.summary }}</p><div class="drawer-section"><h3>问题与服务</h3><p>{{ detail.background }}</p></div><div class="drawer-section"><h3>关键证据</h3><ul class="network-list"><li>明确模块边界与交付责任</li><li>记录技术决策、测试和联调过程</li><li>以可复现结果支持公开展示</li></ul></div><div class="drawer-section"><h3>当前状态</h3><p>{{ detail.outcome }}</p></div><button class="btn btn-primary" type="button" @click="showToast('已标记：重点案例'); closeProject()">标记为重点案例</button></aside></div>
+    <footer class="site-footer"><div class="shell footer-wrap"><span>C5 个人作品集<span class="dot">.</span></span><span>BUILD WITH INTENT</span><a href="#home">回到开头 ↑</a></div></footer>
+    <div v-if="selectedProject" class="drawer-backdrop" role="presentation" @click.self="closeProject"><aside class="drawer" role="dialog" aria-modal="true" aria-label="项目详情"><div class="drawer-head"><span>PROJECT DETAIL</span><button class="close-button" type="button" aria-label="关闭详情" @click="closeProject">×</button></div><div class="drawer-visual" :style="selectedProject.image ? { backgroundImage: `url(${selectedProject.image})` } : {}"></div><p class="eyebrow">{{ selectedProject.projectType }}</p><h2>{{ selectedProject.title }}</h2><p class="drawer-summary">{{ selectedProject.summary }}</p><dl><div><dt>状态</dt><dd>{{ selectedProject.status || selectedProject.outcome }}</dd></div><div><dt>我的角色</dt><dd>{{ selectedProject.role }}</dd></div></dl><h3>问题与边界</h3><p>{{ selectedProject.background }}</p><h3>下一步</h3><p>{{ selectedProject.outcome }}</p><button class="button primary" type="button" @click="showToast('已记录重点案例'); closeProject()">标记为重点案例</button></aside></div>
     <div v-if="toastMessage" class="toast" role="status">{{ toastMessage }}</div>
   </div>
 </template>
