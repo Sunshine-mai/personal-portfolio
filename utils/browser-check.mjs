@@ -108,8 +108,8 @@ try {
   await evaluate(`document.querySelectorAll('.card-link')[0].click()`)
   await sleep(1200)
   check('抽屉已打开', await evaluate(`!!document.querySelector('.drawer')`), true)
-  check('图组缩略图数量', await evaluate(`document.querySelectorAll('.gallery-thumbs button').length`), 2)
-  check('图组计数文案', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '1 / 2')
+  check('图组缩略图数量', await evaluate(`document.querySelectorAll('.gallery-thumbs button').length`), 3)
+  check('图组计数文案', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '1 / 3')
 
   const firstStep = await evaluate(`document.querySelector('.gallery-step').textContent.trim()`)
   const firstCaption = await evaluate(`document.querySelector('.gallery-caption').textContent.trim()`)
@@ -119,19 +119,25 @@ try {
   // 4. 点击下一张
   await evaluate(`document.querySelector('.gallery-bar button:last-child').click()`)
   await sleep(400)
-  check('切换到第 2 张', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '2 / 2')
+  check('切换到第 2 张', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '2 / 3')
   const secondCaption = await evaluate(`document.querySelector('.gallery-caption').textContent.trim()`)
   check('说明文案随图切换', secondCaption !== firstCaption, true)
 
-  // 5. 键盘右箭头循环回第一张
+  // 5. 键盘右箭头：先到第 3 张，再循环回第 1 张
   await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))`)
   await sleep(400)
-  check('右箭头循环回到第 1 张', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '1 / 2')
+  check('右箭头前进到第 3 张', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '3 / 3')
+  await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))`)
+  await sleep(400)
+  check('右箭头从末张循环回第 1 张', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '1 / 3')
+  await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }))`)
+  await sleep(400)
+  check('左箭头从首张回绕到末张', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '3 / 3')
 
   // 6. 点击缩略图直接跳转
   await evaluate(`document.querySelectorAll('.gallery-thumbs button')[1].click()`)
   await sleep(400)
-  check('缩略图可跳转到第 2 张', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '2 / 2')
+  check('缩略图可跳转到第 2 张', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '2 / 3')
 
   // 7. Escape 关闭抽屉
   await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`)
