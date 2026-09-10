@@ -34,17 +34,29 @@ async function getJson(path) {
 }
 function normalizeProject(project, index) {
   const fallback = fallbackProjects[index % fallbackProjects.length]
-  const type = String(project.projectType || project.project_type || fallback.project_type).toUpperCase()
-  const filter = type.includes('PROTOTYPE') ? 'prototype' : type.includes('COLLAB') ? 'collab' : 'independent'
-  return { ...fallback, ...project, projectType: project.projectType || project.project_type || fallback.projectType, project_type: type, filter, tags: fallback.tags }
+  const machineType = String(project.project_type || project.projectType || fallback.project_type).toUpperCase()
+  const filter = machineType.includes('PROTOTYPE') ? 'prototype' : machineType.includes('COLLAB') ? 'collab' : 'independent'
+  return {
+    ...fallback,
+    ...project,
+    projectType: project.project_type ? project.projectType : fallback.projectType,
+    project_type: machineType,
+    filter,
+    tags: project.tags && project.tags.length ? project.tags : fallback.tags,
+  }
 }
 async function loadProjects() {
   loading.value = true
   try {
     const response = await getJson('/api/public/projects')
-    const data = Array.isArray(response.data) && response.data.length ? response.data : fallbackProjects
-    projects.value = data.map(normalizeProject)
-    apiStatus.value = '后端已连接 · 内容来自公开 API'
+    const published = Array.isArray(response.data) ? response.data : []
+    if (published.length) {
+      projects.value = published.map(normalizeProject)
+      apiStatus.value = `后端已连接 · ${published.length} 个已发布项目来自公开 API`
+    } else {
+      projects.value = fallbackProjects.map(normalizeProject)
+      apiStatus.value = '后端已连接但暂无已发布内容 · 当前显示安全静态回退数据'
+    }
   } catch {
     projects.value = fallbackProjects.map(normalizeProject)
     apiStatus.value = '后端不可用 · 当前显示安全静态回退数据'
