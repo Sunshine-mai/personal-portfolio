@@ -64,7 +64,7 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
     </div>
 
     <template v-else>
-      <section class="detail-hero">
+      <section v-reveal class="detail-hero">
         <div class="shell">
           <RouterLink class="detail-back" to="/">← 返回代表项目</RouterLink>
           <div class="detail-hero-grid">
@@ -79,6 +79,7 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
             <dl class="detail-facts">
               <div><dt>状态</dt><dd>{{ project.status || project.outcome }}</dd></div>
               <div><dt>我的角色</dt><dd>{{ project.role }}</dd></div>
+              <div v-if="project.repoName"><dt>仓库名</dt><dd>{{ project.repoName }}</dd></div>
             </dl>
           </div>
         </div>
@@ -86,7 +87,7 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
 
       <section class="content-section detail-body">
         <div class="shell detail-grid">
-          <div class="detail-main">
+          <div class="detail-main" v-reveal>
             <h2 class="detail-heading">过程证据</h2>
             <p class="detail-note">按顺序看这里的设计与实现结果。每一张都是项目实际运行的截图，不是设计稿。</p>
 
@@ -125,7 +126,7 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
             </div>
           </div>
 
-          <aside class="detail-aside">
+          <aside class="detail-aside" v-reveal="1">
             <div class="detail-card">
               <h3>问题与边界</h3>
               <p>{{ project.background }}</p>

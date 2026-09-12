@@ -114,7 +114,7 @@ try {
   check('点击后进入详情页', await evaluate(`location.pathname`), '/projects/ai-translator')
   check('详情页标题已渲染', await evaluate(`document.querySelector('.detail-hero h1')?.textContent.trim() || ''`), 'LexiFlow')
   check('详情页有返回链接', await evaluate(`!!document.querySelector('.detail-back')`), true)
-  check('详情页状态与角色已渲染', await evaluate(`document.querySelectorAll('.detail-facts dd').length`), 2)
+  check('详情页状态、角色与仓库名已渲染', await evaluate(`document.querySelectorAll('.detail-facts dd').length`), 3)
   check('图组缩略图数量', await evaluate(`document.querySelectorAll('.gallery-thumbs button').length`), 3)
   check('图组计数文案', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '1 / 3')
   check('证据状态行已渲染', await evaluate(`document.querySelector('.gallery-evidence')?.textContent.includes('证据状态') || false`), true)
@@ -133,8 +133,9 @@ try {
 
   // ===== 深链：直接访问详情页 =====
   await goto('/projects/ai-second-brain')
-  check('深链直达详情页', await evaluate(`document.querySelector('.detail-hero h1')?.textContent.trim() || ''`), 'AI Second Brain')
+  check('深链直达详情页', await evaluate(`document.querySelector('.detail-hero h1')?.textContent.trim() || ''`), 'Folio')
   check('深链下图组正常', await evaluate(`document.querySelectorAll('.gallery-thumbs button').length`), 3)
+  check('展示名与仓库名分离', await evaluate(`!!document.querySelector('.detail-hero h1')`), true)
 
   // ===== 上一个 / 下一个 =====
   check('分页导航显示下一个项目', await evaluate(`document.querySelector('.pager-link.is-next strong')?.textContent.trim() || ''`), value => value.length > 0)

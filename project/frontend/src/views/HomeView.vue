@@ -14,7 +14,7 @@ onMounted(load)
 
 <template>
   <div>
-    <section class="hero-section" id="hero">
+    <section v-reveal class="hero-section" id="hero">
       <div class="shell hero-grid">
         <div class="hero-copy-block">
           <p class="eyebrow">SOFTWARE DEVELOPMENT / AI APPLICATIONS</p>
@@ -36,7 +36,7 @@ onMounted(load)
 
     <section class="content-section projects-section" id="projects">
       <div class="shell">
-        <div class="section-heading">
+        <div class="section-heading" v-reveal>
           <div><p class="eyebrow">01 / REPRESENTATIVE PROJECTS</p><h2>做过的项目，<br /><em>按真实状态呈现。</em></h2></div>
           <p>不把原型写成已上线，不把团队成果写成个人战绩。每个案例都保留完成度、角色和下一步。</p>
         </div>
@@ -46,7 +46,7 @@ onMounted(load)
         <p v-if="loading" class="api-status">正在读取已发布内容…</p>
         <p v-else class="api-status">{{ apiStatus }}</p>
         <div class="project-list">
-          <RouterLink v-for="(project, index) in filteredProjects" :key="project.slug || project.id" class="project-card" :to="`/projects/${project.slug}`">
+          <RouterLink v-for="(project, index) in filteredProjects" :key="project.slug || project.id" v-reveal="index + 1" class="project-card" :to="`/projects/${project.slug}`">
             <div class="project-card-body">
               <span class="project-index">0{{ index + 1 }} / PROJECT</span>
               <span class="project-meta">{{ project.projectType }}</span>
@@ -67,11 +67,11 @@ onMounted(load)
 
     <section class="content-section edit-section" id="edit-works">
       <div class="shell">
-        <div class="section-heading">
+        <div class="section-heading" v-reveal>
           <div><p class="eyebrow">02 / VISUAL &amp; EDITING</p><h2>视觉和剪辑，<br /><em>真实素材整理中。</em></h2></div>
           <p>这里会放经过授权的剪辑练习与视觉实验。当前只保留方向和结构，不用虚构作品填满版面。</p>
         </div>
-        <div class="holding-row">
+        <div class="holding-row" v-reveal>
           <span>EDIT 01 / MATERIAL HOLD</span>
           <div><h3>一条信息的三种节奏</h3><p>等待经授权的真实片段截图，补充片长、版本和发布链接。</p></div>
           <span class="hold-status">待补真实素材</span>
@@ -81,20 +81,20 @@ onMounted(load)
 
     <section class="content-section method-section" id="method">
       <div class="shell">
-        <div class="section-heading">
+        <div class="section-heading" v-reveal>
           <div><p class="eyebrow">03 / HOW I WORK</p><h2>从想法到可以交付，<br /><em>每一步都留下证据。</em></h2></div>
           <p>我会先定义问题和边界，再小步实现，用测试和发布记录确认结果。</p>
         </div>
         <div class="method-list">
-          <article v-for="method in methods" :key="method[0]"><span>{{ method[0] }}</span><h3>{{ method[1] }}</h3><p>{{ method[2] }}</p></article>
+          <article v-for="method in methods" :key="method[0]" v-reveal="Number(method[0])"><span>{{ method[0] }}</span><h3>{{ method[1] }}</h3><p>{{ method[2] }}</p></article>
         </div>
       </div>
     </section>
 
     <section class="content-section about-section" id="about">
       <div class="shell about-grid">
-        <div><p class="eyebrow">04 / ABOUT</p><h2>一个持续构建，<br /><em>也持续校准的人。</em></h2></div>
-        <div class="about-copy">
+        <div v-reveal><p class="eyebrow">04 / ABOUT</p><h2>一个持续构建，<br /><em>也持续校准的人。</em></h2></div>
+        <div class="about-copy" v-reveal="1">
           <p>我在产品、代码和内容之间工作。喜欢把模糊的问题拆成清晰的界面，也喜欢把一次交付里的判断，沉淀成下一次可以复用的方法。</p>
           <dl>
             <div><dt>BASE</dt><dd>中国 · 远程协作</dd></div>
