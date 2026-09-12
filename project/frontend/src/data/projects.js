@@ -1,0 +1,105 @@
+// 案例数据与归一化逻辑。
+// 首页列表页与项目详情页共用，避免两处各写一份导致数据漂移。
+import { ref } from 'vue'
+
+export const fallbackProjects = [
+  { id: 1, slug: 'ai-translator', title: 'LexiFlow', summary: '面向英语学习者的无广告翻译与生词学习工具，把一次翻译延展为可持续的学习闭环。', background: '翻译、收藏、复习和统计共同组成学习闭环。', outcome: '已实现核心闭环，等待补齐正式发布证据。', role: '产品设计、全栈开发、部署与验证规划', projectType: 'AI 产品 / 学习工具', project_type: 'INDEPENDENT', status: '已实现 · 待补正式发布证据', tags: ['FastAPI', 'Vue 3', '学习闭环'], image: '/assets/v5/translator-home.png', visualKind: 'screenshot', evidence: '3 张已核验截图 · 引擎降级提示的证据待补', gallery: [{ src: '/assets/v5/translator-home.png', step: 'STEP 01 / 入口', caption: '首页「每日一词」。把工具的入口前置成每天可以回访的学习动作，而不是一次性的翻译框。' }, { src: '/assets/v5/lexiflow-translate-result.png', step: 'STEP 02 / 核心链路', caption: '真实翻译结果。输入一句英文，模型返回中文译文，下方列出可继续查词的高频词。截图取自本地实跑，不是设计稿。' }, { src: '/assets/v5/lexiflow-quota-limit.png', step: 'STEP 03 / 边界处理', caption: '匿名游客每日 3 次免费翻译，用完后不静默失败，而是引导登录。配额按匿名标识独立计数，登录用户不受限。' }] },
+  { id: 2, slug: 'ai-second-brain', title: 'AI Second Brain', summary: '从文档解析到 SSE 对话的个人知识库系统，让私有资料真正参与日常问答。', background: '把文档上传、切片、检索和流式对话连接起来。', outcome: '已完成独立项目闭环，正在整理公开版本证据。', role: '产品建模、Java 全栈开发、测试与部署', projectType: 'AI 产品 / 知识库 RAG', project_type: 'SOLO', status: '已实现 · 发布前复核', tags: ['RAG', 'Spring Boot', 'SSE'], image: '/assets/v5/brain-chat.png', visualKind: 'screenshot', evidence: '3 张已核验截图 · 均为独立演示账号采集，不含真实资料', gallery: [{ src: '/assets/v5/secondbrain-login.png', step: 'STEP 01 / 身份入口', caption: '登录页。系统区分管理员与普通用户，文档、会话与模型配置按账号隔离，不共用同一份数据。' }, { src: '/assets/v5/brain-documents.png', step: 'STEP 02 / 文档管理', caption: '文档上传与处理状态。上传后经过解析、递归切片和本地 BGE 向量化，页面上显示每个文档的切片数量。截图为演示账号，未包含真实资料。' }, { src: '/assets/v5/brain-chat-cited.png', step: 'STEP 03 / 核心链路', caption: '知识库对话。回答基于检索到的片段生成，并给出引用片段与相似度分数；这份材料只覆盖了问题的一部分，回答就明确说明缺失，而不是编造补全。' }] },
+  { id: 3, slug: 'zhiheng-teaching', title: '高中个性化教学平台 · 知衡', summary: '围绕题库、考试、掌握度、错题和练习构建三角色教学分析闭环。', background: '用清晰的数据流连接管理员、老师和学生的日常工作。', outcome: '补齐学生端与管理员端页面、知识点建表与知识图谱，然后处理部署。当前为单机演示数据，未压测、未部署。', role: '产品定义、信息架构、Java 后端与 Vue 前端开发、测试与验收', projectType: '教育产品 / 全栈应用', project_type: 'INDEPENDENT', status: '教师端考试闭环已交付 · 学生端后端完成、前端待补', tags: ['Spring Boot', 'Vue 3', '三角色'], image: '/assets/v5/teaching-home.png', visualKind: 'screenshot', evidence: '真实前后端与数据库 · 8 次版本化迁移 · 51 项后端测试 · 当前截图为业务原型，真实系统截图待补', gallery: [{ src: '/assets/v5/teaching-home.png', step: 'STEP 01 / 管理员视角', caption: '题库管理看板：题目总数、已录入知识点、待审题目与最近录入。这一张来自业务原型，用于确认信息架构与交互；真实系统的题库页与它同构。' }, { src: '/assets/v5/teaching-knowledge.png', step: 'STEP 02 / 数据基础', caption: '知识点学习路径。把知识点组织成可追踪的路径，作为掌握度、错题与练习推荐的数据基础。这部分仍处于设计阶段，尚未建表。' }] },
+  { id: 4, slug: 'university-news', title: '大学新闻网', summary: 'PC 管理端、移动 Web 与微信小程序共享后端 API 的校园新闻系统。', background: '合作项目，覆盖内容管理、多端展示和文件存储。', outcome: '已授权展示，个人贡献边界待补充。', role: '个人负责范围待确认；此处仅记录团队项目能力', projectType: '内容平台 / 多端体验', project_type: 'COLLABORATIVE', status: '已授权展示 · 贡献边界待补充', tags: ['合作', '多端', '内容管理'], image: '/assets/v5/news-cover.png', visualKind: 'layout', evidence: '当前仅有设计版式 · 截图需先确认团队授权与贡献边界', gallery: [{ src: '/assets/v5/news-cover.png', step: 'STEP 01 / 展示边界', caption: '这一张是设计版式，不是系统截图。合作项目在取得团队授权前，不使用学校实景与具体新闻内容，个人贡献边界同样待确认。' }] },
+]
+
+export const projectFilters = [
+  { key: 'all', label: '全部' },
+  { key: 'independent', label: '独立开发' },
+  { key: 'prototype', label: '原型方案' },
+  { key: 'collab', label: '合作项目' },
+]
+
+export const methods = [
+  ['01', '定义问题', '目标、用户、数据流和明确不做的范围。'],
+  ['02', '记录取舍', '比较方案，说明选择、限制与后续代价。'],
+  ['03', '多层验证', '单元、接口、浏览器和部署检查共同形成证据。'],
+  ['04', '发布复盘', '保留版本、隐私边界、回滚方式和下一步。'],
+]
+
+export function filterOf(machineType) {
+  const type = String(machineType || '').toUpperCase()
+  return type.includes('PROTOTYPE') ? 'prototype' : type.includes('COLLAB') ? 'collab' : 'independent'
+}
+
+// 把后端返回的扁平字段与前端展示字段合并。
+// 分类必须取自 project_type 机器值，而不是展示文案，否则原型与合作项目会被误判为独立项目。
+export function normalizeProject(project, fallback = {}) {
+  const machineType = String(project.project_type || project.projectType || fallback.project_type || '').toUpperCase()
+  return {
+    ...fallback,
+    ...project,
+    projectType: project.project_type ? project.projectType : fallback.projectType,
+    project_type: machineType,
+    filter: filterOf(machineType),
+    tags: project.tags && project.tags.length ? project.tags : fallback.tags,
+    gallery: project.gallery && project.gallery.length ? project.gallery : fallback.gallery,
+    visualKind: project.visualKind || fallback.visualKind,
+    evidence: project.evidence || fallback.evidence,
+  }
+}
+
+export function normalizeByIndex(project, index) {
+  return normalizeProject(project, fallbackProjects[index % fallbackProjects.length])
+}
+
+export function galleryOf(project) {
+  if (!project) return []
+  if (project.gallery && project.gallery.length) return project.gallery
+  return project.image ? [{ src: project.image, step: 'STEP 01 / 封面', caption: project.summary }] : []
+}
+
+export async function fetchJson(path) {
+  const response = await fetch(path)
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return response.json()
+}
+
+// 首页列表用的数据源：优先读取已发布内容，失败或为空时回退到内置安全数据。
+export function useProjectList() {
+  const projects = ref([])
+  const loading = ref(true)
+  const apiStatus = ref('正在连接后端…')
+
+  async function load() {
+    loading.value = true
+    try {
+      const response = await fetchJson('/api/public/projects')
+      const published = Array.isArray(response.data) ? response.data : []
+      if (published.length) {
+        projects.value = published.map(normalizeByIndex)
+        apiStatus.value = `后端已连接 · ${published.length} 个已发布项目来自公开 API`
+      } else {
+        projects.value = fallbackProjects.map(normalizeByIndex)
+        apiStatus.value = '后端已连接但暂无已发布内容 · 当前显示安全静态回退数据'
+      }
+    } catch {
+      projects.value = fallbackProjects.map(normalizeByIndex)
+      apiStatus.value = '后端不可用 · 当前显示安全静态回退数据'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return { projects, loading, apiStatus, load }
+}
+
+// 详情页用的数据源：按 slug 读取，找不到时回退到内置数据；两者都没有则判定为不存在。
+export async function loadProjectBySlug(slug) {
+  const local = fallbackProjects.find(item => item.slug === slug) || null
+  let remote = null
+  try {
+    const response = await fetchJson(`/api/public/projects/${slug}`)
+    remote = response.data && Object.keys(response.data).length ? response.data : null
+  } catch {
+    remote = null
+  }
+  if (!remote && !local) return null
+  return normalizeProject(remote || {}, local || {})
+}
