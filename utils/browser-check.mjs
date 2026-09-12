@@ -96,15 +96,15 @@ try {
 
   // ===== 首页 =====
   check('首屏独立项目统计已渲染', await evaluate(`document.querySelector('.hero-facts div:nth-child(2) strong')?.textContent.trim() || ''`), value => /个独立项目$/.test(value))
-  check('项目卡片数量', await evaluate(`document.querySelectorAll('.project-card').length`), 4)
+  check('项目卡片数量', await evaluate(`document.querySelectorAll('.project-card').length`), 5)
   check('API 状态行已渲染', await evaluate(`!!document.querySelector('.api-status')`), true)
 
   const labels = await evaluate(`[...document.querySelectorAll('.visual-label')].map(el => el.textContent.trim())`)
   check('设计版式标签已不再出现（已换成真实系统截图）', labels.filter(item => item === '设计版式').length, 0)
-  check('公开截图标签出现四次', labels.filter(item => item === '公开截图').length, 4)
+  check('公开截图标签出现五次', labels.filter(item => item === '公开截图').length, 5)
 
   // 卡片必须是真实链接，而不是打开抽屉的按钮
-  check('卡片是链接元素', await evaluate(`document.querySelectorAll('a.project-card').length`), 4)
+  check('卡片是链接元素', await evaluate(`document.querySelectorAll('a.project-card').length`), 5)
   check('卡片链接指向详情路由', await evaluate(`document.querySelector('a.project-card')?.getAttribute('href') || ''`), value => /^\/projects\//.test(value))
   check('页面内不再有抽屉元素', await evaluate(`!document.querySelector('.drawer')`), true)
 
@@ -171,16 +171,31 @@ try {
 
   // ===== 返回首页并验证筛选 =====
   await goto('/')
-  await evaluate(`[...document.querySelectorAll('[role="tab"]')].find(b => b.textContent.includes('合作项目')).click()`)
+  // ===== 分类筛选：逐个分类验证数量与归属 =====
+  // 这里曾出过 bug：'COLLABORATIVE' 的子串含 'LAB'，导致合作项目被误判成练习场。
+  // 因此不只验证数量，还验证每个分类里的项目标题。
+  const pickTab = label => evaluate(`[...document.querySelectorAll('[role="tab"]')].find(b => b.textContent.includes(${JSON.stringify(label)})).click()`)
+
+  for (const [label, expected] of [['独立开发', 3], ['练习与实验', 1], ['合作项目', 1], ['全部', 5]]) {
+    await pickTab(label)
+    await sleep(400)
+    check(`筛选数量：${label}`, await evaluate(`document.querySelectorAll('.project-card').length`), expected)
+  }
+
+  await pickTab('练习与实验')
   await sleep(400)
-  check('筛选：合作项目', await evaluate(`document.querySelectorAll('.project-card').length`), 1)
-  await evaluate(`[...document.querySelectorAll('[role="tab"]')].find(b => b.textContent.includes('原型方案')).click()`)
+  check('练习与实验只含练习场项目', await evaluate(`document.querySelector('.project-card h3')?.textContent.trim() || ''`), 'LexiFlow 练习区')
+
+  await pickTab('合作项目')
   await sleep(400)
-  check('筛选：原型方案（当前无此类项目，应为 0 并给出空状态）', await evaluate(`document.querySelectorAll('.project-card').length`), 0)
-  check('空状态文案已渲染', await evaluate(`!!document.querySelector('.project-empty')`), true)
+  check('合作项目只含大学新闻网', await evaluate(`document.querySelector('.project-card h3')?.textContent.trim() || ''`), '大学新闻网')
+
+  await pickTab('独立开发')
+  await sleep(400)
+  check('独立开发不含练习场与合作项目', await evaluate(`[...document.querySelectorAll('.project-card h3')].map(h => h.textContent.trim())`), titles => titles.length === 3 && !titles.includes('LexiFlow 练习区') && !titles.includes('大学新闻网'))
+
   await evaluate(`[...document.querySelectorAll('[role="tab"]')].find(b => b.textContent.trim() === '全部').click()`)
   await sleep(400)
-  check('筛选：全部', await evaluate(`document.querySelectorAll('.project-card').length`), 4)
 
   // ===== 移动端菜单 =====
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true })
