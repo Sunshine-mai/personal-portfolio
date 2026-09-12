@@ -1,0 +1,26 @@
+# Netlify 部署配置
+#
+# 作品集是纯静态 SPA，不需要后端：前端在拿不到 /api/public/projects 时会
+# 使用内置的安全回退数据，因此这里只托管静态产物。
+#
+# 关键点：路由使用 createWebHistory，直接访问 /projects/xxx 这类深链时，
+# 服务器必须回退到 index.html，否则刷新或分享链接会 404。
+# 同一份规则也写在 public/_redirects，保证「拖拽 dist 文件夹」的部署方式同样生效。
+
+[build]
+  base = "project/frontend"
+  command = "node node_modules/vite/bin/vite.js build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

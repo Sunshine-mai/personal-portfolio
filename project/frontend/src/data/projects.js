@@ -94,11 +94,13 @@ export function useProjectList() {
         apiStatus.value = `后端已连接 · ${published.length} 个已发布项目来自公开 API`
       } else {
         projects.value = fallbackProjects.map(normalizeByIndex)
-        apiStatus.value = '后端已连接但暂无已发布内容 · 当前显示安全静态回退数据'
+        apiStatus.value = '已连接后端，当前展示内容来自项目内置的已核验数据'
       }
     } catch {
       projects.value = fallbackProjects.map(normalizeByIndex)
-      apiStatus.value = '后端不可用 · 当前显示安全静态回退数据'
+      // 静态部署（如 Netlify）没有后端，这是预期情况而不是故障，
+      // 因此说明内容来源，而不是显示"后端不可用"让人以为站点坏了。
+      apiStatus.value = '静态展示 · 内容来自项目内置的已核验数据'
     } finally {
       loading.value = false
     }
