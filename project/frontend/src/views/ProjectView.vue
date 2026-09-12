@@ -7,6 +7,7 @@ const route = useRoute()
 const project = ref(null)
 const status = ref('loading')
 const galleryIndex = ref(0)
+const zoomed = ref(false)
 
 const slides = computed(() => galleryOf(project.value))
 const currentSlide = computed(() => slides.value[galleryIndex.value] || null)
@@ -40,6 +41,10 @@ function galleryNext() {
   galleryIndex.value = (galleryIndex.value + 1) % total
 }
 function onKeydown(event) {
+  if (event.key === 'Escape' && zoomed.value) {
+    zoomed.value = false
+    return
+  }
   if (event.key === 'ArrowLeft') galleryPrev()
   if (event.key === 'ArrowRight') galleryNext()
 }
@@ -92,13 +97,16 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
             <p class="detail-note">按顺序看这里的设计与实现结果。每一张都是项目实际运行的截图，不是设计稿。</p>
 
             <div v-if="currentSlide" class="gallery">
-              <figure class="gallery-stage">
-                <img :src="currentSlide.src" :alt="`${project.title} ${currentSlide.step}`" />
-              </figure>
+              <div class="gallery-frame">
+                <button type="button" class="gallery-nav is-prev" :disabled="slides.length < 2" aria-label="上一张截图" @click="galleryPrev">←</button>
+                <figure class="gallery-stage" role="button" tabindex="0" aria-label="点击放大查看截图" @click="zoomed = true" @keydown.enter.prevent="zoomed = true" @keydown.space.prevent="zoomed = true">
+                  <img :src="currentSlide.src" :alt="`${project.title} ${currentSlide.step}`" />
+                  <span class="gallery-zoom">点击放大</span>
+                </figure>
+                <button type="button" class="gallery-nav is-next" :disabled="slides.length < 2" aria-label="下一张截图" @click="galleryNext">→</button>
+              </div>
               <div class="gallery-bar">
-                <button type="button" :disabled="slides.length < 2" aria-label="上一张截图" @click="galleryPrev">←</button>
                 <span>{{ galleryIndex + 1 }} / {{ slides.length }}</span>
-                <button type="button" :disabled="slides.length < 2" aria-label="下一张截图" @click="galleryNext">→</button>
               </div>
               <div class="gallery-copy">
                 <p class="gallery-step">
@@ -121,8 +129,16 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
                   <img :src="slide.src" alt="" />
                 </button>
               </div>
-              <p class="gallery-hint">← → 切换截图</p>
+              <p class="gallery-hint">← → 切换截图 · 点击图片放大</p>
               <p v-if="project.evidence" class="gallery-evidence">证据状态：{{ project.evidence }}</p>
+            </div>
+
+            <div v-if="zoomed && currentSlide" class="lightbox" role="dialog" aria-modal="true" aria-label="放大查看截图" @click.self="zoomed = false">
+              <button type="button" class="lightbox-close" aria-label="关闭放大" @click="zoomed = false">×</button>
+              <button type="button" class="gallery-nav is-prev" :disabled="slides.length < 2" aria-label="上一张截图" @click.stop="galleryPrev">←</button>
+              <img :src="currentSlide.src" :alt="`${project.title} ${currentSlide.step}`" />
+              <button type="button" class="gallery-nav is-next" :disabled="slides.length < 2" aria-label="下一张截图" @click.stop="galleryNext">→</button>
+              <p class="lightbox-caption"><strong>{{ currentSlide.step }}</strong>{{ currentSlide.caption }}</p>
             </div>
           </div>
 

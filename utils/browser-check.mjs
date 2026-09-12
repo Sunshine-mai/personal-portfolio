@@ -120,8 +120,9 @@ try {
   check('证据状态行已渲染', await evaluate(`document.querySelector('.gallery-evidence')?.textContent.includes('证据状态') || false`), true)
   await capture('v11-detail-lexiflow.png')
 
-  // 图组翻页
-  await evaluate(`document.querySelector('.gallery-bar button:last-child').click()`)
+  // 图组翻页：左右箭头位于图片两侧
+  check('左右箭头位于图片两侧', await evaluate(`document.querySelectorAll('.gallery-frame > .gallery-nav').length`), 2)
+  await evaluate(`document.querySelector('.gallery-nav.is-next').click()`)
   await sleep(400)
   check('下一张按钮可用', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '2 / 3')
   await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))`)
@@ -130,6 +131,19 @@ try {
   await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))`)
   await sleep(400)
   check('右箭头从末张循环回首张', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '1 / 3')
+
+  // 点击图片放大
+  check('放大层初始不存在', await evaluate(`!document.querySelector('.lightbox')`), true)
+  await evaluate(`document.querySelector('.gallery-stage').click()`)
+  await sleep(500)
+  check('点击图片打开放大层', await evaluate(`!!document.querySelector('.lightbox')`), true)
+  check('放大层显示说明文案', await evaluate(`!!document.querySelector('.lightbox-caption')`), true)
+  await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))`)
+  await sleep(400)
+  check('放大层内可继续翻页', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '2 / 3')
+  await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`)
+  await sleep(500)
+  check('Escape 关闭放大层', await evaluate(`!document.querySelector('.lightbox')`), true)
 
   // ===== 深链：直接访问详情页 =====
   await goto('/projects/ai-second-brain')
