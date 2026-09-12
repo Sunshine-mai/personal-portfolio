@@ -100,8 +100,8 @@ try {
   check('API 状态行已渲染', await evaluate(`!!document.querySelector('.api-status')`), true)
 
   const labels = await evaluate(`[...document.querySelectorAll('.visual-label')].map(el => el.textContent.trim())`)
-  check('设计版式标签只出现一次', labels.filter(item => item === '设计版式').length, 1)
-  check('公开截图标签出现三次', labels.filter(item => item === '公开截图').length, 3)
+  check('设计版式标签已不再出现（已换成真实系统截图）', labels.filter(item => item === '设计版式').length, 0)
+  check('公开截图标签出现四次', labels.filter(item => item === '公开截图').length, 4)
 
   // 卡片必须是真实链接，而不是打开抽屉的按钮
   check('卡片是链接元素', await evaluate(`document.querySelectorAll('a.project-card').length`), 4)
@@ -162,10 +162,11 @@ try {
   check('未知项目显示 404 状态', await evaluate(`!!document.querySelector('.detail-loading h1')`), true)
   check('404 提供返回入口', await evaluate(`!!document.querySelector('.detail-loading a.button')`), true)
 
-  // ===== 设计版式徽标（合作项目） =====
+  // ===== 合作项目已换成真实系统截图 =====
   await goto('/projects/university-news')
-  check('合作项目显示设计版式徽标', await evaluate(`document.querySelector('.gallery-kind')?.textContent.trim() || ''`), '设计版式 · 非截图')
-  check('合作项目只有一张图', await evaluate(`document.querySelectorAll('.gallery-thumbs button').length`), 0)
+  check('合作项目已使用真实截图', await evaluate(`document.querySelectorAll('.gallery-thumbs button').length`), 3)
+  check('合作项目不再显示设计版式徽标', await evaluate(`!document.querySelector('.gallery-kind')`), true)
+  check('合作项目图注已渲染', await evaluate(`(document.querySelector('.gallery-caption')?.textContent || '').length > 10`), true)
   await capture('v11-detail-collab.png')
 
   // ===== 返回首页并验证筛选 =====
