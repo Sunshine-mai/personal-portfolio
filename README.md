@@ -11,9 +11,12 @@
 
 ## 当前状态
 
-V5 深色画廊原型已完成并迁移到 `project/frontend/` 的 Vue 3 正式前端；Java 后端已完成公开读取、管理员会话、项目草稿创建和送审基础链路，并在本地 MySQL 8.0 上完成从零迁移验证。审核通过、发布、下线、审计事件及其余 V2 实体仍待实现，真实项目内容尚未录入数据库。
+**完整状态见 `doc/STATUS.md`（单一状态源，本 README 不复述进度，避免两处漂移）。**
 
-展示名与仓库名的对应关系见 `doc/10-decision-log.md` 的 ADR-013（AI Translator 对外展示名为 LexiFlow）。
+一句话现状：正式前端已完成路由页改造并接入五个案例，浏览器验收 42 项全部通过；
+Java 后端仍停在无法产出公开内容的阶段，公开接口返回空数组，页面走内置安全回退数据。
+
+展示名与仓库名的对应关系见 `doc/10-decision-log.md` 的 ADR-013、ADR-014。
 
 ## 开发配置
 
@@ -56,6 +59,7 @@ project/backend/src/main/java/com/crow5/portfolio/
 
 ## 文档
 
+- `doc/STATUS.md`：**当前状态（单一状态源，判断进度以此为准）**
 - `doc/00-project-charter.md`：项目章程与边界
 - `doc/01-product-requirements.md`：产品需求
 - `doc/02-information-architecture.md`：信息架构
