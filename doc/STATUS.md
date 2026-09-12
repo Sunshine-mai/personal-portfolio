@@ -8,8 +8,20 @@
 
 ## 一句话状态
 
-正式前端已完成路由页改造与五个案例接入，浏览器验收 42 项全过；
+正式前端已完成路由页改造与五个案例接入，浏览器验收 42 项全过，并已具备 Netlify 部署条件；
 后端仍停在**无法产出公开内容**的阶段，公开接口返回空，前端走内置回退数据。
+
+## 部署
+
+| 项 | 值 |
+|---|---|
+| 托管 | Netlify，站点 `taupe-chimera-547f35` |
+| 部署目录 | `project/frontend/dist`（构建产物，勿手工修改） |
+| 配置 | `netlify.toml`（构建与 SPA 回退）、`project/frontend/public/_redirects`（拖拽部署时生效） |
+| 深链 | `/projects/:slug` 依赖 SPA 回退；已实测生产产物返回 200 |
+| 后端依赖 | 无。静态托管下前端使用内置的已核验数据，状态行显示「静态展示 · 内容来自项目内置的已核验数据」 |
+
+每次改动后需重新构建并重新部署；拖拽方式不会自动更新。
 
 ## 案例状态
 
@@ -102,4 +114,5 @@
 | `doc/16` 至 `doc/19` | V3 至 V5 原型记录，历史 |
 | `doc/20-portfolio-vue-migration.md` | 前端迁移与验收记录 |
 | `doc/21-migration-incident-and-recovery.md` | V2 迁移事故与恢复 |
+| `doc/22-future-directions.md` | 后续方向想法池（网状知识图谱、技术栈试用平台），未立项 |
 | `self-reflection-lite.md` | 长期工程经验与各项目启动方式 |
