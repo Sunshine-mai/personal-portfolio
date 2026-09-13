@@ -2,12 +2,21 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { fallbackProjects, galleryOf, loadProjectBySlug } from '../data/projects'
+import { useHeroAmbience } from '../composables/useHeroAmbience'
 
 const route = useRoute()
 const project = ref(null)
 const status = ref('loading')
 const galleryIndex = ref(0)
 const zoomed = ref(false)
+
+// 展示框高度由 CSS 固定（clamp(380px,50vh,600px)），
+// 早先试过让框跟着截图比例撑开，那样换图时高度一直在变、下方内容跟着跳，已否。
+// 固定高度下要整张图可见就只能居中并留白；留白是页面背景（框不画边框也不给底色），
+// 所以看上去是呼吸空间而不是"空着的格子"。
+//
+// 二级页面首屏与首页同一套氛围层，共用同一份逻辑（见 composable 里的说明）。
+const { rootRef: heroRef, glowRef, onPointerMove, onPointerLeave } = useHeroAmbience()
 
 const slides = computed(() => galleryOf(project.value))
 const currentSlide = computed(() => slides.value[galleryIndex.value] || null)
@@ -69,7 +78,19 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
     </div>
 
     <template v-else>
-      <section v-reveal class="detail-hero">
+      <section
+        v-reveal
+        class="detail-hero"
+        ref="heroRef"
+        @pointermove="onPointerMove"
+        @pointerleave="onPointerLeave"
+      >
+        <!-- 氛围层：网格 + 跟随指针的光斑，与首页同一份逻辑、同一套克制程度。
+             纯装饰，对读屏隐藏；两者都只写自己的 transform。 -->
+        <div class="hero-layers" aria-hidden="true">
+          <span class="hero-grid-lines"></span>
+          <span ref="glowRef" class="hero-glow"></span>
+        </div>
         <div class="shell">
           <RouterLink class="detail-back" to="/">← 返回代表项目</RouterLink>
           <div class="detail-hero-grid">
@@ -105,8 +126,20 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
             <div v-if="currentSlide" class="gallery">
               <div class="gallery-frame">
                 <button type="button" class="gallery-nav is-prev" :disabled="slides.length < 2" aria-label="上一张截图" @click="galleryPrev">←</button>
-                <figure class="gallery-stage" role="button" tabindex="0" aria-label="点击放大查看截图" @click="zoomed = true" @keydown.enter.prevent="zoomed = true" @keydown.space.prevent="zoomed = true">
-                  <img :src="currentSlide.src" :alt="`${project.title} ${currentSlide.step}`" />
+                <figure
+                  class="gallery-stage"
+                  role="button"
+                  tabindex="0"
+                  aria-label="点击放大查看截图"
+                  @click="zoomed = true"
+                  @keydown.enter.prevent="zoomed = true"
+                  @keydown.space.prevent="zoomed = true"
+                >
+                  <!-- 交叉淡入，不是硬切。两张图同时在场靠绝对定位叠着，由透明度交接；
+                       不要改成 mode="out-in"——那会在中间闪一下空白。 -->
+                  <Transition name="gallery-fade">
+                    <img :key="currentSlide.src" :src="currentSlide.src" :alt="`${project.title} ${currentSlide.step}`" />
+                  </Transition>
                   <span class="gallery-zoom">点击放大</span>
                 </figure>
                 <button type="button" class="gallery-nav is-next" :disabled="slides.length < 2" aria-label="下一张截图" @click="galleryNext">→</button>
@@ -147,10 +180,10 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
           </div>
 
           <aside class="detail-aside" v-reveal="1">
-            <div class="detail-card">
-              <h3>它是怎么构成的</h3>
-              <p>{{ project.background }}</p>
-            </div>
+            <!-- 「它是怎么构成的」已删除：它引用的 background 与首屏 summary 语义重叠
+                 （知衡的 summary 说"三角色…闭环"，background 说"连接管理员、老师和学生"），
+                 同一页把同一件事说两遍。留下的这一张在知衡与练习区带着首屏没有的信息
+                 （"未压测、未部署"、"让练习结果回流到词流"）。 -->
             <div class="detail-card">
               <h3>进度与下一步</h3>
               <p>{{ project.outcome }}</p>

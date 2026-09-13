@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { methods, projectFilters, useProjectList } from '../data/projects'
 import TechGraph from '../components/TechGraph.vue'
 import { copyEmail } from '../composables/useToast'
+import { useHeroAmbience } from '../composables/useHeroAmbience'
 
 const { projects, loading, apiStatus, load } = useProjectList()
 const activeFilter = ref('all')
@@ -13,56 +14,9 @@ const independentCount = computed(() => projects.value.filter(project => project
 // 首屏索引里被悬停/聚焦的那一行。
 const activeSlug = ref(null)
 
-// ── 首屏指针氛围层 ────────────────────────────────────────────────────────────
-// 只写两个内层元素自己的 transform：底图与基准布局一律不动，
-// 所以"画面会动"与"布局可断言"同时成立（与技术网络图同一条原则）。
-// 刻意直接操作 DOM 而不走响应式：pointermove 每秒可触发上百次，
-// 每次都进 Vue 的更新队列是白烧的。
-const heroRef = ref(null)
-const glowRef = ref(null)
-
-// 光斑中心刻意**不落在指针上**，而是上移一段：正落在指针处时热点恰好压在手底下的内容上，
-// 观感明显过强。上移之后亮度中心移到指针上方，指针附近落在衰减段里，光就像从上方照下来。
-const HERO_GLOW_LIFT = 72
-
-function prefersReducedMotion() {
-  return typeof window !== 'undefined'
-    && window.matchMedia
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
-
-function onHeroPointerMove(event) {
-  if (prefersReducedMotion()) return
-  const hero = heroRef.value
-  const glow = glowRef.value
-  if (!hero || !glow) return
-  const rect = hero.getBoundingClientRect()
-  if (!rect.width || !rect.height) return
-  const x = event.clientX - rect.left
-  const y = event.clientY - rect.top
-  // 居中由 CSS 的负 margin 负责，这里只负责"移到指针上方"。
-  // 之前这里又减了一次半径，而 CSS 已经减过一次——双重偏移，
-  // 光斑整块落到指针左上 430px 处。居中只做一次，两处各做一半就是错。
-  glow.style.transform = `translate3d(${x.toFixed(1)}px,${(y - HERO_GLOW_LIFT).toFixed(1)}px,0)`
-  // 网格做一点反向位移形成极浅的景深。幅度必须小，再大就成了"页面在晃"。
-  hero.style.setProperty('--parallax-x', `${((x / rect.width - .5) * -14).toFixed(2)}px`)
-  hero.style.setProperty('--parallax-y', `${((y / rect.height - .5) * -10).toFixed(2)}px`)
-  // 内容层的视差用 -1..1 的归一化值，具体位移量放在 CSS 里：
-  // "移多少"是样式问题，改它不必碰逻辑，也便于按屏宽单独调。
-  hero.style.setProperty('--hero-x', ((x / rect.width - .5) * 2).toFixed(3))
-  hero.style.setProperty('--hero-y', ((y / rect.height - .5) * 2).toFixed(3))
-  hero.classList.add('is-live')
-}
-
-function onHeroPointerLeave() {
-  const hero = heroRef.value
-  if (!hero) return
-  hero.classList.remove('is-live')
-  hero.style.setProperty('--parallax-x', '0px')
-  hero.style.setProperty('--parallax-y', '0px')
-  hero.style.setProperty('--hero-x', '0')
-  hero.style.setProperty('--hero-y', '0')
-}
+// 首屏指针氛围层（光斑 + 网格视差 + 内容层反向视差）。
+// 逻辑放在 composable 里，二级页面首屏用同一份——两处各写一份，约定必然漂移。
+const { rootRef: heroRef, glowRef, onPointerMove, onPointerLeave } = useHeroAmbience()
 
 // 每层只取首项：一层的完整标签塞不进这一列，而"这一层主要用什么"才是扫读时要的。
 // 取的是真实依赖清单里的原值，不做任何改写。
@@ -81,8 +35,8 @@ onMounted(load)
       ref="heroRef"
       v-reveal
       class="hero-section"
-      @pointermove="onHeroPointerMove"
-      @pointerleave="onHeroPointerLeave"
+      @pointermove="onPointerMove"
+      @pointerleave="onPointerLeave"
     >
       <!-- 氛围层：网格 + 跟随指针的光斑。纯装饰，对读屏隐藏；
            两者都只写自己的 transform，基准布局与底图不动。 -->

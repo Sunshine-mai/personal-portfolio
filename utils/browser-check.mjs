@@ -284,14 +284,16 @@ try {
   `), v => v.dy <= -24 && Math.abs(v.dx) <= 8)
   // 光斑是环境光，不许成为画面里最亮的东西。峰值曾经给到 .17，
   // 那就是一张会动的亮块，把视线从标题上拽走（"抢主角风头"）。
-  // 这里直接读渲染后的渐变色标，而不是读源码——测的是实际生效的值。
+  // 现在是 .04，离 .17 很远；上限留到 .05 是为了给"更深一点"留余量，
+  // 同时仍然挡得住任何把亮度拉回亮块区间的改动。
+  // 读的是渲染后的渐变色标，而不是源码——测的是实际生效的值。
   check('首屏氛围层：光斑峰值亮度受控（不抢标题）', await evaluate(`
     (() => {
       const bg = getComputedStyle(document.querySelector('.hero-glow')).backgroundImage
       const alphas = [...bg.matchAll(/rgba\\([^)]*?,\\s*([0-9.]+)\\)/g)].map(m => Number(m[1]))
       return alphas.length ? Math.max(...alphas) : null
     })()
-  `), v => typeof v === 'number' && v > 0 && v <= 0.04)
+  `), v => typeof v === 'number' && v > 0 && v <= 0.05)
   // 生动感必须来自**位移**而不是亮度：亮度是有预算的（标题必须最亮），位移没有。
   // 两个内容层朝相反方向移动才有纵深，同向会像整块在飘——所以这里断言的是"反向"，不只是"动了"。
   check('首屏内容层随指针产生反向视差', await evaluate(`
@@ -545,6 +547,40 @@ try {
       return { 同线: Math.abs(no.top - h1.top) < 24, 在左: no.right <= h1.left }
     })()
   `), v => v.同线 === true && v.在左 === true)
+
+  // 二级页面首屏与首页共用同一套氛围层（同一份 composable，不是抄一份）。
+  // 断言的性质与首页保持一致：光斑中心在指针上方、两个内容层反向视差。
+  const detailSpot = await evaluate(`
+    (() => {
+      const r = document.querySelector('.detail-hero').getBoundingClientRect()
+      return { x: Math.round(r.left + r.width * 0.3), y: Math.round(r.top + r.height * 0.7) }
+    })()
+  `)
+  await evaluate(`
+    document.querySelector('.detail-hero').dispatchEvent(new PointerEvent('pointermove', {
+      clientX: ${detailSpot.x}, clientY: ${detailSpot.y}, bubbles: true,
+    }))
+  `)
+  await sleep(950)
+  check('二级页面首屏氛围层：光斑中心在指针上方', await evaluate(`
+    (() => {
+      const hero = document.querySelector('.detail-hero')
+      const r = document.querySelector('.detail-hero .hero-glow').getBoundingClientRect()
+      return {
+        live: hero.classList.contains('is-live'),
+        dx: Math.round(r.left + r.width / 2 - ${detailSpot.x}),
+        dy: Math.round(r.top + r.height / 2 - ${detailSpot.y}),
+      }
+    })()
+  `), v => v.live === true && v.dy <= -24 && Math.abs(v.dx) <= 8)
+  check('二级页面首屏内容层反向视差', await evaluate(`
+    (() => {
+      const x = sel => +new DOMMatrixReadOnly(getComputedStyle(document.querySelector(sel)).transform).e.toFixed(2)
+      return { near: x('.detail-hero-grid > *:first-child'), far: x('.detail-facts') }
+    })()
+  `), v => Math.abs(v.near) >= 1 && Math.abs(v.far) >= 1 && v.near * v.far < 0)
+  await evaluate(`document.querySelector('.detail-hero').dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }))`)
+  await sleep(950)
   check('图组缩略图数量', await evaluate(`document.querySelectorAll('.gallery-thumbs button').length`), 3)
   check('图组计数文案', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '1 / 3')
   // 证据（含迁移次数、测试数等硬数字）已提到首屏事实清单，二级页面不再重复展示，避免同一信息出现两次。
@@ -642,6 +678,63 @@ try {
   await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`)
   await sleep(500)
   check('Escape 关闭放大层', await evaluate(`!document.querySelector('.lightbox')`), true)
+
+  // 图组换图必须是交叉淡入，不是硬切。过渡中同时存在两张图才算交叉淡入——
+  // 换 src 或者用 <Transition mode="out-in"> 都只会有 1 张，那正是要防的回归
+  // （out-in 中间还会闪一下空白，比硬切更糟）。
+  // 点击与读取写在同一个 evaluate 里：CDP 往返会把这 350ms 的过渡等过去，量到的就是过渡后的状态。
+  check('图组换图是交叉淡入（过渡中同时存在两张图）', await evaluate(`
+    (async () => {
+      const before = document.querySelector('.gallery-stage img').getAttribute('src')
+      document.querySelector('.gallery-nav.is-next').click()
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      const images = [...document.querySelectorAll('.gallery-stage img')]
+      return { count: images.length, changed: images.some(img => img.getAttribute('src') !== before) }
+    })()
+  `), v => v.count === 2 && v.changed === true)
+  await sleep(600)
+
+  // 侧栏那两块原来和截图并排，右栏下方空出一大块。现在必须是顺序排列：
+  // 卡片的左边缘要落在截图区左边缘上，并且在它下方。
+  check('进度卡已移到截图下方，且只剩一张', await evaluate(`
+    (() => {
+      const main = document.querySelector('.detail-main').getBoundingClientRect()
+      const aside = document.querySelector('.detail-aside').getBoundingClientRect()
+      return {
+        卡片数: document.querySelectorAll('.detail-card').length,
+        在下方: Math.round(aside.top) >= Math.round(main.bottom),
+        左对齐: Math.abs(aside.left - main.left) <= 2,
+      }
+    })()
+  `), v => v.卡片数 === 1 && v.在下方 === true && v.左对齐 === true)
+
+  // 截图与下方卡片必须同宽。曾经截图限宽 880px 而卡片是全宽 1160px，
+  // 两者版心不一致，截图右边空出 280px——"空"就是这么来的。
+  check('截图区与卡片同宽（右边不留空）', await evaluate(`
+    (() => {
+      const gallery = document.querySelector('.gallery').getBoundingClientRect()
+      const card = document.querySelector('.detail-card').getBoundingClientRect()
+      return { 差: Math.abs(Math.round(gallery.width) - Math.round(card.width)) }
+    })()
+  `), v => v.差 <= 2)
+
+  // 用户的要求：整张截图要看得见（不裁切），且换图时不能跳动（固定高度）。
+  // 固定高度下两者同时成立的唯一方式是居中 + contain，留白交给页面背景。
+  // 所以断言量两条：填充方式是 contain；换到下一张后框高不变。
+  const stageBefore = await evaluate(`
+    (() => {
+      const stage = document.querySelector('.gallery-stage')
+      const img = stage.querySelector('img')
+      const box = stage.getBoundingClientRect()
+      return { 高: Math.round(box.height), 填充方式: getComputedStyle(img).objectFit }
+    })()
+  `)
+  check('整张截图可见（contain，不裁切）', stageBefore, v => v.填充方式 === 'contain' && v.高 > 200)
+  await evaluate(`document.querySelector('.gallery-nav.is-next').click()`)
+  await sleep(800)
+  check('换图后展示框高度不变（不跳动）', await evaluate(`
+    Math.round(document.querySelector('.gallery-stage').getBoundingClientRect().height)
+  `), v => Math.abs(v - stageBefore.高) <= 1)
 
   // ===== 深链：直接访问详情页 =====
   await goto('/projects/ai-second-brain')
