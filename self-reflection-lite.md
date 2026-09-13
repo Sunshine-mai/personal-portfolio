@@ -152,7 +152,7 @@ cd ..\frontend ; $env:VITE_API_PROXY_TARGET='http://localhost:8001'; node node_m
 | 密钥不能进仓库 | ✅ pre-push 钩子 + `utils/verify.mjs` 秘密扫描，不再依赖人记得 |
 | 改动不能破坏页面 | ✅ 47 项浏览器验收 |
 | 后端测试参数不能丢 | ✅ 写进 `backend/pom.xml`，不再靠文档记忆 |
-| 不可逆操作要先说明 | ❌ 尚未机制化，目前靠自觉 |
+| 不可逆操作要先说明 | ⚠️ 已写成规范（`CLAUDE.md` + `doc/25-risk-basics.md`），但**尚未机器强制**，靠执行者照做 |
 
 **能机制化的判断就不要留给人**，剩下那少数才值得花注意力——这也是阶段 0（门禁）的全部意义。
 

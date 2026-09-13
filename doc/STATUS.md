@@ -205,4 +205,6 @@
 | `doc/21-migration-incident-and-recovery.md` | V2 迁移事故与恢复 |
 | `doc/22-future-directions.md` | 后续方向想法池（网状知识图谱、技术栈试用平台），未立项 |
 | `doc/23-roadmap.md` | **实施路线：现在到完成要走的阶段、每阶段的完成标志、以及明确不做的事** |
+| `doc/24-runbook.md` | **运行手册：安装、日常循环、命令清单、部署现状、故障对照表** |
+| `doc/25-risk-basics.md` | **风险常识：本仓库的不可逆操作清单、放行判据、声明格式** |
 | `self-reflection-lite.md` | 长期工程经验与各项目启动方式 |
