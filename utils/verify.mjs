@@ -42,7 +42,9 @@ function run(command, commandArgs, options = {}) {
   const result = spawnSync(command, commandArgs, {
     cwd: options.cwd || root,
     stdio: 'inherit',
-    shell: false,
+    // Windows 上 mvn 实际是 mvn.cmd，不经过 shell 无法执行。不处理会得到一个
+    // 假的"命令无法启动"，让门禁看起来是坏的——假警报和漏报一样有害。
+    shell: options.shell === true,
   })
   if (result.error) fail(`${command} 无法启动：${result.error.message}`)
   if (result.status !== 0) fail(`${command} ${commandArgs.join(' ')} 退出码 ${result.status}`)
@@ -154,7 +156,7 @@ function backendTests() {
   step('后端测试')
   // -Djdk.attach.allowAttachSelf=true 是必须的：Mockito 注入 agent 要起外部进程，
   // 缺这个参数时 14 项会全部报 "Could not self-attach to current VM"。
-  run('mvn', ['-o', 'test', '-DargLine=-Djdk.attach.allowAttachSelf=true'], { cwd: backend })
+  run('mvn', ['-o', 'test', '-DargLine=-Djdk.attach.allowAttachSelf=true'], { cwd: backend, shell: true })
   ok('后端测试通过')
 }
 
