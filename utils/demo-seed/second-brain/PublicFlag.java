@@ -5,14 +5,21 @@ import java.sql.*;
  * 只修改指定 id 的 is_public 字段，不触碰其他任何数据。
  *   dump                  打印当前 is_public 状态
  *   set <0|1> <id,id,..>  把指定文档的 is_public 设为指定值
+ *
+ * 连接信息只从环境变量读取，不写死在源码里：源码会进公开仓库，凭据不该跟着进去。
+ * 用法示例（PowerShell）：
+ *   $env:DB_URL='jdbc:mysql://127.0.0.1:3306/ai-second-brain?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai'
+ *   $env:DB_USERNAME='root'
+ *   $env:DB_PASSWORD='<本地密码>'
+ *   java PublicFlag.java dump
  */
 public class PublicFlag {
-    static final String URL = "jdbc:mysql://127.0.0.1:3306/ai-second-brain?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&connectTimeout=4000";
-    static final String USER = "root";
-    static final String PASS = "040127";
-
     public static void main(String[] args) throws Exception {
-        try (Connection c = DriverManager.getConnection(URL, USER, PASS)) {
+        String url = requireEnv("DB_URL");
+        String user = envOrDefault("DB_USERNAME", envOrDefault("DB_USER", "root"));
+        String password = requireEnv("DB_PASSWORD");
+
+        try (Connection c = DriverManager.getConnection(url, user, password)) {
             if (args.length == 0 || "dump".equals(args[0])) {
                 dump(c);
                 return;
@@ -41,6 +48,22 @@ public class PublicFlag {
             }
             System.out.println("usage: PublicFlag dump | set <0|1> <id,id,..>");
         }
+    }
+
+    /** 缺少必需的环境变量时直接退出并说明缺什么，不要用一个默认值悄悄连上别的库。 */
+    static String requireEnv(String name) {
+        String value = System.getenv(name);
+        if (value == null || value.isBlank()) {
+            System.err.println("缺少环境变量 " + name + "。");
+            System.err.println("连接信息不写在源码里，请先注入：DB_URL / DB_USERNAME / DB_PASSWORD");
+            System.exit(2);
+        }
+        return value;
+    }
+
+    static String envOrDefault(String name, String fallback) {
+        String value = System.getenv(name);
+        return (value == null || value.isBlank()) ? fallback : value;
     }
 
     static void dump(Connection c) throws SQLException {

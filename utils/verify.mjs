@@ -63,7 +63,7 @@ function secretScan() {
 
   // 只在"看起来是真实值"时报错。误报会让工具被忽略，而被忽略的扫描器等于不存在。
   const PLACEHOLDER = /change[-_]?me|please[-_]?change|placeholder|example|your[-_]|\*\*\*|x{3,}|dummy|sample|redacted|<[^>]+>/i
-  // 裸值形式（DB_PASSWORD=040127）只在这些配置类文件里检查；放到代码文件里会大量误报
+  // 裸值形式（配置文件里的 KEY=值）只在这些配置类文件里检查；放到代码文件里会大量误报
   // 变量赋值（this.adminPassword = adminPassword）与测试夹具（"ADMIN_PASSWORD=secret"）。
   const CONFIG_FILE = /(^|\/)(\.env|\.env\..+|[\w.-]+\.(env|ya?ml|properties|toml|ini|conf|cfg|sh|ps1|tf))$/i
 
@@ -73,6 +73,10 @@ function secretScan() {
     { name: 'Google API Key', re: /AIza[A-Za-z0-9_-]{20,}/ },
     { name: 'AWS Access Key', re: /AKIA[0-9A-Z]{12,}/ },
     { name: 'GitHub Token', re: /ghp_[A-Za-z0-9]{20,}/ },
+    // 短变量名形式的口令字面量（PASS / PWD / SECRET / TOKEN / APIKEY），任何文件类型都检查。
+    // 这条是补漏加的：utils/demo-seed 里曾有 `static final String PASS = "真实密码"`，
+    // 因为变量不叫 password、文件又是 .java，前两类规则都漏掉了它。
+    { name: '口令字面量（短变量名）', re: /\b(pass|pwd|secret|token|apikey|api_key)\b\s*[:=]\s*["']([^"']{6,})["']/i, value: 2 },
     { name: '硬编码口令（带引号）', re: /(password|passwd|pwd)["']?\s*[:=]\s*["']([^"']{6,})["']/i, value: 2 },
     { name: '硬编码口令（配置文件）', re: /^\s*[\w.-]*(password|passwd|pwd)[\w.-]*\s*[:=]\s*([^\s"'#$]{6,})\s*$/i, value: 2, configOnly: true },
   ]
