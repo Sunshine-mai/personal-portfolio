@@ -69,3 +69,50 @@
 | 多角色业务建模 | 大学新闻网、教学平台 | 从权限、数据归属到不同角色工作流，先定义边界再做界面 |
 | 多端体验 | 大学新闻网、AI Translator | PC、移动 Web 与小程序/底部导航的差异化交互设计 |
 | 可交付工程纪律 | 全部项目 | 设计先行、决策存证、环境隔离、测试验证、部署与复盘 |
+
+---
+
+## 2026-09-13 复核：技术栈逐项重核
+
+本节的来历：为首页技术网络图准备数据时，发现**不能再直接引用上面的技术栈行**。
+复核方式不是读文档，而是**逐个读各项目的依赖清单**：
+`backend/pom.xml`、`backend/requirements.txt`、各端 `package.json`，另加必要的代码检索。
+
+### 上一版台账的三类问题
+
+| 类型 | 实例 |
+|---|---|
+| **把"计划"写成了"已有"** | 案例三（教学平台）的 `README.md` 技术栈表里写了 **ECharts**。核实：`frontend/package.json` 的**全部提交历史**中从未出现过 echarts，代码里也没有引用；它只出现在 `doc/04-decisions.md`（选型决策）、`doc/09-preview-plan.md`（计划项）、`PROJECT_HANDOFF.md`（分包设想）等**文档**里。**即：选型讨论过、计划里有，但没有成为依赖。** 而按计划使用它的"知识图谱展示"尚未实现（`knowledge_point`／`knowledge_edge` 表已在 V1 迁移中建好，但没有对应前端） |
+| **层级过粗，漏掉整块** | 案例二（Folio）前端只写"Vue 3"，实际还有 Element Plus、Pinia、vue-router、Tailwind CSS、marked |
+| **验证等级过期** | 案例四写成"原型／验证等级 P／未连接真实后端与数据库"，实际早已是可运行的完整系统：**8 个 Flyway 迁移、51 个 `@Test`**——与作品集对外显示的数字一致 |
+
+案例五（LexiFlow 练习区）在上一版台账里**没有条目**。
+
+### 复核后的已核验技术栈
+
+选取标准：**列语言、框架、运行时服务、数据存储，以及决定工程结构的库**；
+不列 Lombok、Axios、PostCSS、pytest 这类管道与工具类（它们不构成"技术选型"）。
+
+| 案例 | 前端 | 后端 | 数据与检索 | 运行与其他 |
+|---|---|---|---|---|
+| 一 LexiFlow | Vue 3、Element Plus、Pinia、Tailwind CSS | Python 3.11+、FastAPI、SQLAlchemy、Alembic | SQLite（开发）／PostgreSQL（生产）、Redis | Docker Compose、Nginx |
+| 二 Folio | Vue 3、Element Plus、Pinia、Tailwind CSS | Java 17、Spring Boot 3、Sa-Token、MyBatis-Plus | MySQL、LangChain4j、Apache Tika、BGE-Small-ZH 本地向量化 | Docker、Nginx、SpringDoc |
+| 三 知衡 | Vue 3、TypeScript、Element Plus、Pinia、Vite | Java 17、Spring Boot 3、MyBatis-Plus、Sa-Token、Flyway | MySQL、H2（测试） | EasyExcel、Spring Security Crypto |
+| 四 大学新闻网 | PC：Vue 3、Tailwind CSS、HeadlessUI、wangEditor、Swiper；移动：Vue 3、Vant；小程序：Vant Weapp | Java 17、Spring Boot 3、MyBatis、JPA、Sa-Token、PageHelper | MySQL、MinIO | SpringDoc、Spring Boot Admin、Actuator |
+| 五 练习区 | Vue 3、Element Plus、Pinia、Tailwind CSS | FastAPI、SQLAlchemy、Alembic（与案例一同源） | PostgreSQL、Redis | Docker Compose、Nginx |
+
+### 两条复核结论
+
+1. **LexiFlow 与练习区的依赖清单逐字相同**（同为 `requirements.txt`），
+   与作品集案例五"练习场与正式产品共用同一套技术栈"的说法一致——这不是巧合，是设计意图。
+2. **案例一"SQLite 开发／PostgreSQL 生产分离"经复核成立**：
+   `backend/app/config.py` 默认值为 `sqlite:///./translator.db`，`database.py` 中有按 URL 分支的同步／异步处理。
+
+### 使用约束
+
+- 上述技术栈**仍受各自的公开边界约束**：案例四（合作项目）只陈述已确认的项目级技术构成，
+  不据此推断个人负责的模块。
+- **凡引用技术栈，以本节为准，不再引用上文各案例行中的技术栈字段**（那几行保留原样，
+  用于记录当时的判断，不作为当前事实来源）。
+- 数字类陈述（迁移数、测试数）已用代码检索核对，可对外使用。
+
