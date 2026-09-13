@@ -103,7 +103,219 @@ try {
   await sleep(2800)
 
   // ===== 首页 =====
-  check('首屏独立项目统计已渲染', await evaluate(`document.querySelector('.hero-facts div:nth-child(2) strong')?.textContent.trim() || ''`), value => /个独立项目$/.test(value))
+  // 首屏此前是固定 min-height:680px，与视口无关。实测 1440×900：
+  // 导航 73 + 首屏 680 = 753，只填满导航以下的 82%，而下一节的编号落在 884px——
+  // 正好在第一屏最底边露出一行。改成跟视口走之后两个问题同时消失，
+  // 所以这两条必须一起断言：只测"铺满"会漏掉"漏出下一节"。
+  check('首屏恰好填满导航以下的视口', await evaluate(`
+    (() => {
+      const hero = document.querySelector('.hero-section').getBoundingClientRect()
+      const nav = document.querySelector('.topbar').getBoundingClientRect()
+      return Math.abs(hero.height - (innerHeight - nav.height)) <= 1
+    })()
+  `), true)
+  check('首屏不再漏出下一节的编号', await evaluate(`
+    document.querySelector('#projects .eyebrow').getBoundingClientRect().top >= innerHeight
+  `), true)
+  // H1 曾经是 88px、恒定三行、269px 高（左栏只有 675px 宽，10 个汉字必须折行）。
+  check('H1 压到两行以内', await evaluate(`
+    (() => {
+      const h1 = document.querySelector('h1')
+      const size = parseFloat(getComputedStyle(h1).fontSize)
+      return Math.round(h1.getBoundingClientRect().height / (size * 1.06))
+    })()
+  `), lines => lines <= 2)
+  // 中文没有真斜体。<em> 自带浏览器默认斜体，只删 CSS 里的 font-style:italic 是没用的，
+  // 必须显式写 normal——这条守着它不被"顺手"改回去。
+  check('标题中文强调不是假斜体', await evaluate(`getComputedStyle(document.querySelector('h1 em')).fontStyle`), 'normal')
+  // 字体必须由网页自己保证：Noto Serif SC 之前只写在 --serif 里却从未加载，
+  // 装了这个字体的机器看着正常，访客机器会落到系统衬线体，两边字形不一致。
+  check('标题中文衬线体已作为网页字体加载', await evaluate(`document.fonts.check('500 62px "Noto Serif SC"')`), true)
+  check('首屏计数是实计数', await evaluate(`document.querySelector('.hero-foot-count')?.textContent.trim() || ''`), value => /个独立项目$/.test(value))
+
+  // 首屏右列是 5 个真实项目的索引：既是内容也是导航。
+  check('首屏项目索引行数', await evaluate(`document.querySelectorAll('.hero-index-row').length`), 5)
+  // 首屏索引是**页内索引**，不是跳详情页的快捷方式：它指向下方 01 节的对应卡片。
+  // 卡片才是"先看结果"的那一级（带截图与摘要）；直接跳二级等于把这一级整个跳过。
+  check('首屏索引指向对应的项目卡片锚点', await evaluate(`
+    [...document.querySelectorAll('.hero-index-row')].every(a => {
+      const slug = (a.getAttribute('href') || '').split('#project-')[1]
+      return !!slug && !!document.getElementById('project-' + slug)
+    })
+  `), true)
+  check('每张项目卡片都有可锚定的 id', await evaluate(`
+    [...document.querySelectorAll('.project-card')].filter(c => (c.id || '').startsWith('project-')).length
+  `), 5)
+
+  // 真的点一下：必须仍停在首页并落到那张卡片上，而不是跳到二级详情页。
+  await evaluate(`document.querySelector('.hero-index-row').click()`)
+  await sleep(1900)
+  check('点首屏索引后停在首页并落到对应卡片', await evaluate(`
+    (() => {
+      const card = document.getElementById('project-ai-translator')
+      return {
+        path: location.pathname,
+        hash: location.hash,
+        cardTop: card ? Math.round(card.getBoundingClientRect().top) : null,
+      }
+    })()
+  `), v => v.path === '/' && v.hash === '#project-ai-translator' && v.cardTop >= 80 && v.cardTop <= 120)
+
+  // ===== 悬停动效 =====
+  // 必须用**真实鼠标事件**（CDP Input）驱动：CSS 的 :hover 不响应 dispatchEvent，
+  // 用合成事件测出来的"通过"是假的。断言也量的是最终形态（缩放倍数、位移量），
+  // 不是"有没有这段代码"——上一次光斑出错就栽在只断言了"transform 变了"。
+  const cardPoint = await evaluate(`
+    (() => {
+      const r = document.getElementById('project-ai-translator').getBoundingClientRect()
+      return { x: Math.round(r.left + r.width * 0.25), y: Math.round(r.top + r.height * 0.5) }
+    })()
+  `)
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: cardPoint.x, y: cardPoint.y })
+  await sleep(900)
+  check('项目卡片悬停：截图被推近', await evaluate(`
+    (() => {
+      const card = document.querySelector('.project-card:hover')
+      if (!card) return null
+      return +new DOMMatrixReadOnly(getComputedStyle(card.querySelector('.project-visual')).transform).a.toFixed(3)
+    })()
+  `), v => typeof v === 'number' && v > 1.02)
+  check('项目卡片悬停：左侧强调线自上而下展开', await evaluate(`
+    (() => {
+      const card = document.querySelector('.project-card:hover')
+      if (!card) return null
+      return +new DOMMatrixReadOnly(getComputedStyle(card, ':before').transform).d.toFixed(3)
+    })()
+  `), v => typeof v === 'number' && v > 0.9)
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 8, y: 8 })
+  await sleep(800)
+  check('指针离开后卡片恢复原状', await evaluate(`
+    +new DOMMatrixReadOnly(getComputedStyle(document.getElementById('project-ai-translator').querySelector('.project-visual')).transform).a.toFixed(3)
+  `), 1)
+
+  // 方法清单整行位移
+  await evaluate(`document.querySelector('#method').scrollIntoView({ behavior: 'instant', block: 'start' })`)
+  await sleep(700)
+  const methodPoint = await evaluate(`
+    (() => {
+      const r = document.querySelector('.method-list article').getBoundingClientRect()
+      return { x: Math.round(r.left + r.width * 0.5), y: Math.round(r.top + r.height * 0.6) }
+    })()
+  `)
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: methodPoint.x, y: methodPoint.y })
+  await sleep(700)
+  check('方法行悬停：整行右移', await evaluate(`
+    (() => {
+      const row = document.querySelector('.method-list article:hover')
+      if (!row) return null
+      return +new DOMMatrixReadOnly(getComputedStyle(row).transform).e.toFixed(2)
+    })()
+  `), v => typeof v === 'number' && v >= 5)
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 8, y: 8 })
+  await evaluate(`window.scrollTo(0, 0)`)
+  await sleep(900)
+  check('首屏索引默认不展开技术分层', await evaluate(`
+    [...document.querySelectorAll('.hero-index-stack')].every(el => getComputedStyle(el).opacity === '0')
+  `), true)
+
+  // 悬停展开：走真实 pointerenter，而不是直接改状态。
+  const heroRowRect = await evaluate(`
+    (() => { const r = document.querySelector('.hero-index-name').getBoundingClientRect(); return { x: Math.round(r.left + 6), y: Math.round(r.top + 6) } })()
+  `)
+  await evaluate(`
+    document.querySelector('.hero-index-row').dispatchEvent(new PointerEvent('pointerenter', {
+      clientX: ${heroRowRect.x}, clientY: ${heroRowRect.y}, bubbles: false,
+    }))
+  `)
+  await sleep(600)
+  check('首屏索引悬停后展开该项目真实的技术分层', await evaluate(`
+    (() => {
+      const row = document.querySelector('.hero-index-row')
+      const stack = row.querySelector('.hero-index-stack')
+      return {
+        active: row.classList.contains('is-active'),
+        slug: row.dataset.slug,
+        opacity: getComputedStyle(stack).opacity,
+      }
+    })()
+  `), v => v.active === true && v.slug === 'ai-translator' && v.opacity === '1')
+  // 展开的必须是与依赖清单一致的真实条目，而不是占位文字。
+  // 期望值是逐层首项，写死在这里：它同时也是"这一列没有变成装饰"的证据。
+  check('首屏索引展开项与依赖清单一致', await evaluate(`
+    [...document.querySelector('.hero-index-row .hero-index-stack').querySelectorAll('span')].map(s => s.textContent.trim())
+  `), tags => JSON.stringify(tags) === JSON.stringify(['Vue 3', 'Python 3.11+', 'SQLite', 'Docker Compose']))
+
+  // 氛围层：光斑跟随指针、网格轻微位移。断言的是内层 transform 变了，
+  // 基准布局由上面的几何断言守着——两者互不干扰（与技术网络图同一条原则）。
+  const glowBefore = await evaluate(`document.querySelector('.hero-glow').style.transform || ''`)
+  // 指针位置先算出来再原样回读：光斑中心必须**落在这一点上**。
+  // 只断言"transform 变了"是不够的——CSS 的负 margin 已经居中过一次，
+  // JS 里再减一次半径就会把光斑整体推到指针左上 430px，
+  // 而"变了"的断言照样通过。这里量的才是它落在哪。
+  const spot = await evaluate(`
+    (() => {
+      const r = document.querySelector('.hero-section').getBoundingClientRect()
+      return { x: Math.round(r.left + r.width * 0.32), y: Math.round(r.top + r.height * 0.68) }
+    })()
+  `)
+  await evaluate(`
+    document.querySelector('.hero-section').dispatchEvent(new PointerEvent('pointermove', {
+      clientX: ${spot.x}, clientY: ${spot.y}, bubbles: true,
+    }))
+  `)
+  await sleep(900)
+  check('首屏氛围层：光斑随指针位移', await evaluate(`
+    (() => {
+      const hero = document.querySelector('.hero-section')
+      return {
+        live: hero.classList.contains('is-live'),
+        glow: document.querySelector('.hero-glow').style.transform || '',
+        parallax: hero.style.getPropertyValue('--parallax-x') || '',
+      }
+    })()
+  `), v => v.live === true && v.glow.startsWith('translate3d') && v.glow !== glowBefore && v.parallax !== '')
+  // 光斑中心必须落在指针**上方**，而不是压在手底下。中心正落在指针处时热点压住内容，观感过强。
+  // 这里断言的是性质（在指针上方、水平对齐），不是某个具体数值——上移多少属于可调观感，钉死反而碍事。
+  check('首屏氛围层：光斑中心在指针上方（不压在手底下）', await evaluate(`
+    (() => {
+      const r = document.querySelector('.hero-glow').getBoundingClientRect()
+      return { dx: Math.round(r.left + r.width / 2 - ${spot.x}), dy: Math.round(r.top + r.height / 2 - ${spot.y}) }
+    })()
+  `), v => v.dy <= -24 && Math.abs(v.dx) <= 8)
+  // 光斑是环境光，不许成为画面里最亮的东西。峰值曾经给到 .17，
+  // 那就是一张会动的亮块，把视线从标题上拽走（"抢主角风头"）。
+  // 这里直接读渲染后的渐变色标，而不是读源码——测的是实际生效的值。
+  check('首屏氛围层：光斑峰值亮度受控（不抢标题）', await evaluate(`
+    (() => {
+      const bg = getComputedStyle(document.querySelector('.hero-glow')).backgroundImage
+      const alphas = [...bg.matchAll(/rgba\\([^)]*?,\\s*([0-9.]+)\\)/g)].map(m => Number(m[1]))
+      return alphas.length ? Math.max(...alphas) : null
+    })()
+  `), v => typeof v === 'number' && v > 0 && v <= 0.04)
+  // 生动感必须来自**位移**而不是亮度：亮度是有预算的（标题必须最亮），位移没有。
+  // 两个内容层朝相反方向移动才有纵深，同向会像整块在飘——所以这里断言的是"反向"，不只是"动了"。
+  check('首屏内容层随指针产生反向视差', await evaluate(`
+    (() => {
+      const x = sel => +new DOMMatrixReadOnly(getComputedStyle(document.querySelector(sel)).transform).e.toFixed(2)
+      return { copy: x('.hero-copy-block'), index: x('.hero-index') }
+    })()
+  `), v => Math.abs(v.copy) >= 1 && Math.abs(v.index) >= 1 && v.copy * v.index < 0)
+  await evaluate(`document.querySelector('.hero-section').dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }))`)
+  // 等满过渡时长：--hero-x 是直接写入的（瞬时归零），但 transform 有 600ms 过渡。
+  // 只等 400ms 会量到 -0.14 这种"快到了"的中间值——那是等待不足，不是没收回。
+  await sleep(950)
+  check('指针移出后首屏氛围层收回', await evaluate(`
+    (() => {
+      const hero = document.querySelector('.hero-section')
+      return {
+        live: hero.classList.contains('is-live'),
+        parallax: hero.style.getPropertyValue('--parallax-x') || '',
+        heroX: hero.style.getPropertyValue('--hero-x') || '',
+        copyX: +new DOMMatrixReadOnly(getComputedStyle(document.querySelector('.hero-copy-block')).transform).e.toFixed(2),
+      }
+    })()
+  `), v => v.live === false && v.parallax === '0px' && v.heroX === '0' && Math.abs(v.copyX) <= 0.3)
+
   check('项目卡片数量', await evaluate(`document.querySelectorAll('.project-card').length`), 5)
   check('API 状态行已渲染', await evaluate(`!!document.querySelector('.api-status')`), true)
 
@@ -151,12 +363,37 @@ try {
   // 分节编号必须唯一且连续。加网络图那一节时我把新的写成 02，
   // 而"视觉与剪辑"本来就是 02，于是出现两个 02、后面编号全部错位。
   // 这是纯人工维护的数字，所以需要断言守着。
+  // 编号现在是光秃秃的 `01`（曾经写成 `01 / 5 PROJECTS`，那种长串要 148px 才放得下，
+  // 会把标题挤开、窄屏还会折行），所以只取开头的数字。
   check('首页分节编号唯一且连续', await evaluate(`
     [...document.querySelectorAll('.eyebrow')]
-      .map(el => (el.textContent.match(/^(\\d+)\\s*\\//) || [])[1])
+      .map(el => (el.textContent.match(/^(\\d+)/) || [])[1])
       .filter(Boolean)
       .join(',')
   `), '01,02,03,04,05')
+  // 编号必须与标题并排，任何宽度都不能塌成上下堆叠：
+  // 首屏的索引行是"01 | 项目名"并排的，分节标题如果不一致就会显得没做完。
+  // 收尾区块（关于我）自成一套两栏布局，所以单独一并纳入——它是 05，
+  // 之前漏掉它就成了唯一一个把编号压在标题上方的例外。
+  check('分节编号与标题并排（同一水平线）', await evaluate(`
+    (() => {
+      const heads = [...document.querySelectorAll('.section-heading, .about-title')]
+      const bad = heads.filter(head => {
+        const no = head.querySelector('.eyebrow').getBoundingClientRect()
+        const h2 = head.querySelector('h2').getBoundingClientRect()
+        return !(Math.abs(no.top - h2.top) < 24 && no.right <= h2.left)
+      }).length
+      return { count: heads.length, bad }
+    })()
+  `), v => v.count === 5 && v.bad === 0)
+  // 编号栏只占 36px。给"关于我"那节加宽左栏就是为了这个：
+  // 栏宽不够时"也持续校准的人。"会多折一行，标题从两行变三行。
+  check('分节标题都是两行（没被编号栏挤到折行）', await evaluate(`
+    [...document.querySelectorAll('.section-heading h2, .about-title h2')].map(h => {
+      const size = parseFloat(getComputedStyle(h).fontSize)
+      return Math.round(h.getBoundingClientRect().height / (size * 1.05))
+    })
+  `), lines => lines.length === 5 && lines.every(n => n === 2))
 
   check('技术网络图：项目节点数', await evaluate(`document.querySelectorAll('.graph-node.is-project').length`), 5)
   check('技术网络图：技术节点数', await evaluate(`document.querySelectorAll('.graph-node.is-tech').length`), 36)
@@ -297,7 +534,17 @@ try {
   check('点击后进入详情页', await evaluate(`location.pathname`), '/projects/ai-translator')
   check('详情页标题已渲染', await evaluate(`document.querySelector('.detail-hero h1')?.textContent.trim() || ''`), '词流 LexiFlow')
   check('详情页有返回链接', await evaluate(`!!document.querySelector('.detail-back')`), true)
-  check('首屏事实清单已渲染（状态/角色/仓库名/证据）', await evaluate(`document.querySelectorAll('.detail-facts dd').length`), 4)
+  check('首屏事实清单已渲染（状态/类型/角色/仓库名/证据）', await evaluate(`document.querySelectorAll('.detail-facts dd').length`), 5)
+  // 二级页面的编号也必须与标题并排——和首页五个分节同一规则。
+  // 编号压在标题上方时，读者要多扫一行才知道自己在第几个案例。
+  check('二级页面编号与标题并排', await evaluate(`
+    (() => {
+      const t = document.querySelector('.detail-hero-title')
+      const no = t.querySelector('.eyebrow').getBoundingClientRect()
+      const h1 = t.querySelector('h1').getBoundingClientRect()
+      return { 同线: Math.abs(no.top - h1.top) < 24, 在左: no.right <= h1.left }
+    })()
+  `), v => v.同线 === true && v.在左 === true)
   check('图组缩略图数量', await evaluate(`document.querySelectorAll('.gallery-thumbs button').length`), 3)
   check('图组计数文案', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '1 / 3')
   // 证据（含迁移次数、测试数等硬数字）已提到首屏事实清单，二级页面不再重复展示，避免同一信息出现两次。
@@ -307,6 +554,52 @@ try {
   check('技术栈首层为前端', await evaluate(`document.querySelector('.stack-layer')?.textContent.trim() || ''`), '前端')
   check('项目结构树已渲染', await evaluate(`document.querySelectorAll('.tree-list li').length`), 14)
   check('目录树带脱敏声明', await evaluate(`(document.querySelector('.tree-legend')?.textContent || '').includes('脱敏摘要')`), true)
+
+  // 二级页面的悬停反馈。CSS 的 :hover 不响应 dispatchEvent，必须走真实鼠标事件；
+  // 断言的也仍是最终形态（位移量），不是"有没有这段样式"。
+  await evaluate(`document.querySelector('.stack-row').scrollIntoView({ behavior: 'instant', block: 'center' })`)
+  await sleep(600)
+  const stackPoint = await evaluate(`
+    (() => {
+      const r = document.querySelector('.stack-row').getBoundingClientRect()
+      return { x: Math.round(r.left + r.width * 0.6), y: Math.round(r.top + r.height * 0.5) }
+    })()
+  `)
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: stackPoint.x, y: stackPoint.y })
+  await sleep(700)
+  check('二级页面：技术栈行悬停整行右移', await evaluate(`
+    (() => {
+      const row = document.querySelector('.stack-row:hover')
+      if (!row) return null
+      return +new DOMMatrixReadOnly(getComputedStyle(row).transform).e.toFixed(2)
+    })()
+  `), v => typeof v === 'number' && v >= 4)
+
+  await evaluate(`document.querySelector('.tree-list li').scrollIntoView({ behavior: 'instant', block: 'center' })`)
+  await sleep(600)
+  const treePoint = await evaluate(`
+    (() => {
+      const r = document.querySelector('.tree-list li').getBoundingClientRect()
+      return { x: Math.round(r.left + r.width * 0.5), y: Math.round(r.top + r.height * 0.5) }
+    })()
+  `)
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: treePoint.x, y: treePoint.y })
+  await sleep(700)
+  check('二级页面：目录树节点悬停整行右移', await evaluate(`
+    (() => {
+      const row = document.querySelector('.tree-list li:hover')
+      if (!row) return null
+      return +new DOMMatrixReadOnly(getComputedStyle(row).transform).e.toFixed(2)
+    })()
+  `), v => typeof v === 'number' && v >= 3)
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 8, y: 8 })
+  await sleep(300)
+  // 悬停测试把页面滚到了目录树，而下面那张留存截图是按当前视口截的。
+  // 不显式滚回来的话，截到的就是目录树那块——不报错，但截错了东西（实际发生过一次：
+  // v11-detail-lexiflow.png 从 334KB 掉到 93KB）。截图必须自己决定看到什么，
+  // 不能依赖前面测试遗留的滚动位置。
+  await evaluate(`window.scrollTo(0, 0)`)
+  await sleep(500)
   // IA 顺序：先看结果（截图）再看解释（技术栈与代码结构）。
   // 这是设计决定而不是排版细节，用 DOM 顺序把它固定住，避免以后被无意改回去。
   check('截图区在技术栈之前（先看结果再看解释）', await evaluate(`
@@ -416,6 +709,47 @@ try {
   await evaluate(`document.querySelector('.menu-button').click()`)
   await sleep(400)
   check('移动端菜单可展开', await evaluate(`document.querySelector('.nav-links').classList.contains('open')`), true)
+
+  // ===== 减少动效 =====
+  // 首屏氛围层必须在这个偏好下彻底不动。只测"过渡变短"是测错了对象——
+  // 这里要的是"完全没有动效"。reveal.js 在模块加载时读一次该偏好，所以要重新加载页面。
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1100, deviceScaleFactor: 1, mobile: false })
+  await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+  await goto('/')
+  await evaluate(`
+    (() => {
+      const hero = document.querySelector('.hero-section')
+      const r = hero.getBoundingClientRect()
+      hero.dispatchEvent(new PointerEvent('pointermove', {
+        clientX: Math.round(r.left + r.width * 0.3), clientY: Math.round(r.top + r.height * 0.7), bubbles: true,
+      }))
+      return true
+    })()
+  `)
+  await sleep(500)
+  check('减少动效时首屏氛围层完全不跟指针动', await evaluate(`
+    (() => {
+      const hero = document.querySelector('.hero-section')
+      const glow = document.querySelector('.hero-glow')
+      return {
+        live: hero.classList.contains('is-live'),
+        glow: glow.style.transform || '',
+        opacity: getComputedStyle(glow).opacity,
+        parallax: hero.style.getPropertyValue('--parallax-x') || '',
+        copy: getComputedStyle(document.querySelector('.hero-copy-block')).transform,
+      }
+    })()
+  `), v => v.live === false && v.glow === '' && v.opacity === '0' && v.parallax === '' && v.copy === 'none')
+  // 减少动效不等于把功能砍掉：状态切换要保留，只是不再有过渡。
+  await evaluate(`document.querySelector('.hero-index-row').dispatchEvent(new PointerEvent('pointerenter', { bubbles: false }))`)
+  await sleep(400)
+  check('减少动效时索引展开仍然可用（只是没有过渡）', await evaluate(`
+    (() => {
+      const row = document.querySelector('.hero-index-row')
+      return { active: row.classList.contains('is-active'), opacity: getComputedStyle(row.querySelector('.hero-index-stack')).opacity }
+    })()
+  `), v => v.active === true && v.opacity === '1')
+  await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] })
 } catch (error) {
   console.error('验收过程中出错：', error.message)
   results.push({ name: '执行异常', ok: false, actual: error.message })

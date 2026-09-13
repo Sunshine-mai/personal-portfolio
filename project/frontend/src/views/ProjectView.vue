@@ -74,8 +74,12 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
           <RouterLink class="detail-back" to="/">← 返回代表项目</RouterLink>
           <div class="detail-hero-grid">
             <div>
-              <p class="eyebrow">{{ projectNumber }} / {{ project.projectType }}</p>
-              <h1>{{ project.title }}</h1>
+              <!-- 编号与标题并排，和首页五个分节同一规则：
+                   编号压在标题上方时，读者要多扫一行才知道自己在第几个案例。 -->
+              <div class="detail-hero-title">
+                <p class="eyebrow">{{ projectNumber }}</p>
+                <h1>{{ project.title }}</h1>
+              </div>
               <p class="detail-lead">{{ project.summary }}</p>
               <div class="tag-list detail-tags">
                 <span v-for="tag in project.tags" :key="tag">{{ tag }}</span>
@@ -83,6 +87,7 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
             </div>
             <dl class="detail-facts">
               <div><dt>状态</dt><dd>{{ project.status || project.outcome }}</dd></div>
+              <div><dt>类型</dt><dd>{{ project.projectType }}</dd></div>
               <div><dt>我的角色</dt><dd>{{ project.role }}</dd></div>
               <div v-if="project.repoName"><dt>仓库名</dt><dd>{{ project.repoName }}</dd></div>
               <div v-if="project.evidence" class="fact-evidence"><dt>证据</dt><dd>{{ project.evidence }}</dd></div>
