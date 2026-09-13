@@ -118,8 +118,19 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
       </section>
 
       <section class="content-section detail-body">
+        <!-- 页内跳转。这一页最高的（Folio）约 2600px，此前没有任何锚点，想看技术栈只能一路滚。
+             条目按实际存在的小节渲染：只有 LexiFlow 与 Folio 有「项目结构」，
+             知衡／大学新闻网／练习区没有。
+             用 RouterLink 而不是原生 <a href="#...">：走路由的滚动逻辑，
+             与首页五个锚点共用同一套落位计算（offsetTop，不受 v-reveal 入场位移影响）。 -->
+        <nav class="shell detail-toc" aria-label="本页小节">
+          <RouterLink :to="{ path: route.path, hash: '#detail-evidence' }">过程证据</RouterLink>
+          <RouterLink :to="{ path: route.path, hash: '#detail-progress' }">进度与下一步</RouterLink>
+          <RouterLink v-if="project.stack" :to="{ path: route.path, hash: '#detail-stack' }">技术栈</RouterLink>
+          <RouterLink v-if="project.structure" :to="{ path: route.path, hash: '#detail-structure' }">项目结构</RouterLink>
+        </nav>
         <div class="shell detail-grid">
-          <div class="detail-main" v-reveal>
+          <div class="detail-main" id="detail-evidence" v-reveal>
             <h2 class="detail-heading">过程证据</h2>
             <p class="detail-note">按顺序看这里的设计与实现结果。每一张都是项目实际运行的截图，不是设计稿。</p>
 
@@ -173,13 +184,18 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
             <div v-if="zoomed && currentSlide" class="lightbox" role="dialog" aria-modal="true" aria-label="放大查看截图" @click.self="zoomed = false">
               <button type="button" class="lightbox-close" aria-label="关闭放大" @click="zoomed = false">×</button>
               <button type="button" class="gallery-nav is-prev" :disabled="slides.length < 2" aria-label="上一张截图" @click.stop="galleryPrev">←</button>
-              <img :src="currentSlide.src" :alt="`${project.title} ${currentSlide.step}`" />
+                            <div class="lightbox-stage">
+                <!-- 与图组同一套交叉淡入。灯箱里换图此前是硬切，而放大看图恰恰是最需要连贯的操作。 -->
+                <Transition name="gallery-fade">
+                  <img :key="currentSlide.src" :src="currentSlide.src" :alt="`${project.title} ${currentSlide.step}`" />
+                </Transition>
+              </div>
               <button type="button" class="gallery-nav is-next" :disabled="slides.length < 2" aria-label="下一张截图" @click.stop="galleryNext">→</button>
               <p class="lightbox-caption"><strong>{{ currentSlide.step }}</strong>{{ currentSlide.caption }}</p>
             </div>
           </div>
 
-          <aside class="detail-aside" v-reveal="1">
+          <aside class="detail-aside" id="detail-progress" v-reveal="1">
             <!-- 「它是怎么构成的」已删除：它引用的 background 与首屏 summary 语义重叠
                  （知衡的 summary 说"三角色…闭环"，background 说"连接管理员、老师和学生"），
                  同一页把同一件事说两遍。留下的这一张在知衡与练习区带着首屏没有的信息
@@ -196,7 +212,7 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
            技术栈放在截图前面会让读者先消化一堆技术名词才看到产品，逻辑是反的。 -->
       <section v-if="project.stack || project.structure" class="content-section detail-anatomy">
         <div class="shell">
-          <div v-if="project.stack" class="anatomy-block">
+          <div v-if="project.stack" class="anatomy-block" id="detail-stack">
             <h2 class="detail-heading">技术栈</h2>
             <p class="detail-note">按一次请求经过的顺序排列，箭头表示调用方向。</p>
             <div class="stack-list">
@@ -210,7 +226,7 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
             </div>
           </div>
 
-          <div v-if="project.structure" class="anatomy-block">
+          <div v-if="project.structure" class="anatomy-block" id="detail-structure">
             <h2 class="detail-heading">项目结构</h2>
             <p class="detail-note">只展示有代表性的层级，用来说明代码如何组织，不是完整目录。</p>
             <div class="tree-card">

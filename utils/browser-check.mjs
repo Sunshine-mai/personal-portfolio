@@ -591,6 +591,17 @@ try {
   check('项目结构树已渲染', await evaluate(`document.querySelectorAll('.tree-list li').length`), 14)
   check('目录树带脱敏声明', await evaluate(`(document.querySelector('.tree-legend')?.textContent || '').includes('脱敏摘要')`), true)
 
+  // 页内跳转：条目按实际存在的小节渲染（LexiFlow 有 stack 也有 structure，所以是 4 条），
+  // 点一下要真的落到那一节——不走偏，也不能被 72px 吸顶栏盖住。
+  check('二级页面页内跳转条目按存在的小节渲染', await evaluate(`
+    [...document.querySelectorAll('.detail-toc a')].map(a => a.textContent.trim())
+  `), tags => tags.length === 4 && tags[0] === '过程证据' && tags.includes('技术栈') && tags.includes('项目结构'))
+  await evaluate(`[...document.querySelectorAll('.detail-toc a')].find(a => a.textContent.trim() === '技术栈').click()`)
+  await sleep(1700)
+  check('点页内跳转后技术栈落位合适（80~120px）', await evaluate(`
+    Math.round(document.getElementById('detail-stack').getBoundingClientRect().top)
+  `), v => v >= 80 && v <= 120)
+
   // 二级页面的悬停反馈。CSS 的 :hover 不响应 dispatchEvent，必须走真实鼠标事件；
   // 断言的也仍是最终形态（位移量），不是"有没有这段样式"。
   await evaluate(`document.querySelector('.stack-row').scrollIntoView({ behavior: 'instant', block: 'center' })`)
@@ -675,6 +686,16 @@ try {
   await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))`)
   await sleep(400)
   check('放大层内可继续翻页', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '2 / 3')
+
+  // 灯箱内换图此前是硬切，而放大看图恰恰最需要连贯。断言与图组同一条：
+  // 过渡中必须同时存在两张图（换成 out-in 或退回硬切都只会有 1 张）。
+  check('灯箱内换图也是交叉淡入（过渡中同时存在两张图）', await evaluate(`
+    (async () => {
+      document.querySelector('.lightbox .gallery-nav.is-next').click()
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      return document.querySelectorAll('.lightbox-stage img').length
+    })()
+  `), 2)
   await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`)
   await sleep(500)
   check('Escape 关闭放大层', await evaluate(`!document.querySelector('.lightbox')`), true)
