@@ -20,6 +20,18 @@ function layerGroup(layer) {
   return 'other'
 }
 
+// 由 id 派生一个稳定的 0~1 数值，用作"深度"。
+// 用哈希而不是随机数：深度每次构建必须相同，否则节点大小会变，
+// 依赖几何的断言（标签不重叠、坐标在界内）就不再可靠。
+function hash01(text) {
+  let hash = 2166136261
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  return ((hash >>> 0) % 1000) / 1000
+}
+
 // 一个技术项里可能写着两个技术（如 "SQLite / PostgreSQL"），拆开分别建节点。
 // 不拆分会让同一类技术出现两个名字不同的节点，图上看不出它们是同类。
 function splitItems(item) {
@@ -74,6 +86,12 @@ export function buildTechGraph(projects) {
     tech.group = [...tech.groups][0]
     tech.reuse = tech.projects.length
     delete tech.groups
+  }
+
+  // 深度：用于点径与填充透明度，配合容器倾斜形成 3D 纵深感。
+  // 项目节点固定在"最前"，它们是骨架，不该显得比技术节点远。
+  for (const node of nodes) {
+    node.depth = node.kind === 'project' ? 1 : 0.35 + hash01(node.id) * 0.65
   }
 
   return { nodes, edges }

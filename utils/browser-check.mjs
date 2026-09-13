@@ -161,6 +161,27 @@ try {
     })()
   `), scale => scale > 1.05)
 
+  // 悬停的那个节点必须停在原地。曾经用径向漂移（把节点推离光标），
+  // 结果是"想点的节点一直跑"——越靠近跑得越远，根本点不到。
+  // 改成切向漂移后距离不变，但这仍然需要断言守住，否则很容易又改回径向。
+  check('技术网络图：悬停的节点不会被推开（点得到）', await evaluate(`
+    (() => {
+      const node = document.querySelector('.graph-node.is-focused .node-inner')
+      const t = node?.getAttribute('transform') || ''
+      const m = /translate\\(([-0-9.]+) ([-0-9.]+)\\)/.exec(t)
+      if (!m) return 0
+      return Number(Math.max(Math.abs(Number(m[1])), Math.abs(Number(m[2]))).toFixed(2))
+    })()
+  `), offset => offset <= 0.5)
+
+  // 3D 感：整张图随鼠标倾斜。量的是容器上的实际计算样式，不是"有没有写这段代码"。
+  check('技术网络图：容器随鼠标倾斜（3D 感）', await evaluate(`
+    (() => {
+      const t = getComputedStyle(document.querySelector('.graph-canvas')).transform
+      return !!t && t !== 'none'
+    })()
+  `), true)
+
   // 移出后高亮应清除，且动画要停下来——不动的图不该持续占用 CPU
   await evaluate(`document.querySelector('.graph-canvas').dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }))`)
   await sleep(1400)

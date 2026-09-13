@@ -8,9 +8,9 @@ const props = defineProps({
 
 const GRAPH_WIDTH = 1000
 const GRAPH_HEIGHT = 680
-const PROXIMITY = 76      // 鼠标离节点多近算"靠近"
-const DRIFT_RADIUS = 210  // 鼠标影响范围：这个半径内的节点会被推开一点
-const DRIFT_STRENGTH = 20 // 推开的最大距离（画布单位）
+const PROXIMITY = 110     // 鼠标离节点多近算"悬停"（比漂移半径小，避免刚靠近就被推开）
+const DRIFT_RADIUS = 220  // 漂移影响半径：这个范围内的节点会绕开光标流动
+const DRIFT_STRENGTH = 14 // 切向漂移的最大位移（画布单位）
 const HOVER_SCALE = 1.5   // 悬停节点放大倍数
 const NEIGHBOUR_SCALE = 1.14
 
@@ -153,19 +153,30 @@ function recomputeTargets() {
     else if (neighbours.has(node.id)) want.scale = NEIGHBOUR_SCALE
     else want.scale = 1
 
-    // 2) 鼠标附近的技术节点被轻轻推开（项目节点钉住不动，它们是图的骨架）
     want.dx = 0
     want.dy = 0
-    if (pointerX !== null && node.kind === 'tech') {
-      const dx = node.x - pointerX
-      const dy = node.y - pointerY
-      const distance = Math.hypot(dx, dy)
-      if (distance < DRIFT_RADIUS && distance > 0.01) {
-        const falloff = (1 - distance / DRIFT_RADIUS) ** 2
-        const push = falloff * DRIFT_STRENGTH
-        want.dx = (dx / distance) * push
-        want.dy = (dy / distance) * push
-      }
+
+    if (pointerX === null || node.kind !== 'tech') continue
+
+    const dx = node.x - pointerX
+    const dy = node.y - pointerY
+    const distance = Math.hypot(dx, dy)
+    if (distance >= DRIFT_RADIUS || distance <= 1) continue
+    const falloff = (1 - distance / DRIFT_RADIUS) ** 2
+
+    // 2) 靠近光标的节点略微变大——强化"跟随鼠标"的纵深感
+    //    悬停的那个节点不参与（它的倍数已经由上面决定，且不能变来变去）
+    if (node.id !== focus) {
+      want.scale = Math.max(want.scale, 1 + 0.38 * falloff)
+    }
+
+    // 3) 绕开光标流动。用**切向**而不是径向：
+    //    径向会把节点推离光标，于是"想点的节点一直跑"，越靠近跑得越远（实际踩过的缺陷）。
+    //    切向位移不改变节点到光标的距离，所以既有流动感，又一直点得到。
+    if (node.id !== focus) {
+      const push = falloff * DRIFT_STRENGTH
+      want.dx = (-dy / distance) * push
+      want.dy = (dx / distance) * push
     }
   }
 }
@@ -188,6 +199,29 @@ function toGraphCoords(event) {
   }
 }
 
+// 整张图随鼠标倾斜，形成 3D 纵深感。角度很小（±7°/±5°）——
+// 再大就会影响读坐标、也会让标签看起来歪。
+const tiltX = ref(0)
+const tiltY = ref(0)
+const svgStyle = computed(() => {
+  if (prefersReducedMotion()) return {}
+  if (tiltX.value === 0 && tiltY.value === 0) return {}
+  return {
+    transform: `perspective(1300px) rotateX(${tiltX.value.toFixed(2)}deg) rotateY(${tiltY.value.toFixed(2)}deg)`,
+  }
+})
+
+// 点的大小与填充受"深度"影响，配合倾斜读出远近
+function dotRadius(node) {
+  const depth = node.depth ?? 0.6
+  const base = node.kind === 'project' ? 9 : (node.reuse > 1 ? 5.5 : 4)
+  return Number((base * (0.78 + 0.44 * depth)).toFixed(2))
+}
+function dotFillOpacity(node) {
+  const depth = node.depth ?? 0.6
+  return Number((0.5 + 0.5 * depth).toFixed(2))
+}
+
 function onPointerMove(event) {
   if (prefersReducedMotion()) return
   const point = toGraphCoords(event)
@@ -208,6 +242,9 @@ function onPointerMove(event) {
     hoverId.value = nearest ? nearest.id : null
   }
   recomputeTargets()
+  // 倾斜跟随鼠标在画布中的相对位置
+  tiltY.value = (point.x / GRAPH_WIDTH - 0.5) * 14
+  tiltX.value = -((point.y / GRAPH_HEIGHT - 0.5) * 10)
   startLoop()
 }
 
@@ -215,6 +252,8 @@ function onPointerLeave() {
   pointerX = null
   pointerY = null
   if (!lockedId.value) hoverId.value = null
+  tiltX.value = 0
+  tiltY.value = 0
   resetTargets()
   startLoop()
 }
@@ -270,6 +309,7 @@ const textOutline = computed(() =>
     <svg
       ref="svgRef"
       class="graph-canvas"
+      :style="svgStyle"
       :viewBox="`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`"
       role="group"
       aria-label="技术网络图：项目与技术之间的使用关系，下方有等价的文字版清单"
@@ -303,7 +343,7 @@ const textOutline = computed(() =>
             node.kind === 'project' ? 'is-project' : 'is-tech',
             node.kind === 'tech' ? `is-${node.group}` : '',
             node.kind === 'tech' && node.reuse > 1 ? 'is-shared' : '',
-            { 'is-lit': litNodes && litNodes.has(node.id), 'is-dim': litNodes && !litNodes.has(node.id) },
+            { 'is-focused': node.id === focusedId, 'is-lit': litNodes && litNodes.has(node.id), 'is-dim': litNodes && !litNodes.has(node.id) },
           ]"
           tabindex="0"
           role="button"
@@ -317,7 +357,7 @@ const textOutline = computed(() =>
           <!-- 动画只写这一层的 transform，外层基准坐标保持不变 -->
           <g class="node-inner">
             <circle v-if="node.kind === 'tech' && node.reuse > 1" class="node-halo" :r="node.reuse > 3 ? 13 : 11" />
-            <circle class="node-dot" :r="node.kind === 'project' ? 9 : (node.reuse > 1 ? 5.5 : 4)" />
+            <circle class="node-dot" :r="dotRadius(node)" :fill-opacity="dotFillOpacity(node)" />
             <text class="graph-label" :y="node.kind === 'project' ? -16 : -10">{{ node.kind === 'project' ? node.shortLabel : node.label }}</text>
           </g>
         </g>
@@ -326,7 +366,7 @@ const textOutline = computed(() =>
 
     <p class="graph-status" aria-live="polite">
       <template v-if="focusedNode">{{ focusText(focusedNode) }}</template>
-      <template v-else>鼠标移到节点上看它用在哪里、附近节点会轻轻让开；点击可锁定，再点空白取消</template>
+      <template v-else>鼠标移到节点上会放大并高亮它用在哪里；附近其它节点绕开光标流动。点击可锁定，再点空白取消</template>
     </p>
 
     <details class="graph-outline">
