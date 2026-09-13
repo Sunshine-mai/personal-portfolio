@@ -24,6 +24,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         <RouterLink class="brand" to="/"><span class="brand-mark">C5</span><span>个人作品集</span></RouterLink>
         <nav class="nav-links" :class="{ open: menuOpen }" aria-label="主导航">
           <RouterLink :to="{ path: '/', hash: '#projects' }" @click="closeMenu">代表项目</RouterLink>
+          <RouterLink :to="{ path: '/', hash: '#stack' }" @click="closeMenu">技术栈</RouterLink>
           <RouterLink :to="{ path: '/', hash: '#edit-works' }" @click="closeMenu">视觉与剪辑</RouterLink>
           <RouterLink :to="{ path: '/', hash: '#method' }" @click="closeMenu">工程方法</RouterLink>
           <RouterLink :to="{ path: '/', hash: '#about' }" @click="closeMenu">关于我</RouterLink>

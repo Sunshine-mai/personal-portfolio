@@ -120,6 +120,104 @@ try {
   await evaluate(`window.scrollTo(0, 0)`)
   await sleep(500)
 
+  // ===== 首页技术网络图 =====
+  check('技术网络图：项目节点数', await evaluate(`document.querySelectorAll('.graph-node.is-project').length`), 5)
+  check('技术网络图：技术节点数', await evaluate(`document.querySelectorAll('.graph-node.is-tech').length`), 36)
+  check('技术网络图：连线数', await evaluate(`document.querySelectorAll('.graph-edge').length`), 67)
+  check('技术网络图：初始无高亮', await evaluate(`document.querySelectorAll('.graph-node.is-lit').length`), 0)
+
+  // 邻近高亮：把指针移到某个技术节点上（模拟真实 pointermove，不是直接改状态）
+  await evaluate(`
+    (() => {
+      const dot = document.querySelector('.graph-node.is-tech .node-dot')
+      const svg = document.querySelector('.graph-canvas')
+      const rect = dot.getBoundingClientRect()
+      svg.dispatchEvent(new PointerEvent('pointermove', {
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2,
+        bubbles: true,
+      }))
+      return true
+    })()
+  `)
+  await sleep(300)
+  check('技术网络图：邻近高亮生效', await evaluate(`
+    (() => {
+      const lit = document.querySelectorAll('.graph-node.is-lit').length
+      const total = document.querySelectorAll('.graph-node').length
+      return lit > 0 && lit < total
+    })()
+  `), true)
+
+  // 移出后高亮应清除
+  await evaluate(`document.querySelector('.graph-canvas').dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }))`)
+  await sleep(300)
+  check('技术网络图：移出后高亮清除', await evaluate(`document.querySelectorAll('.graph-node.is-lit').length`), 0)
+
+  // 文字版与图必须等价：既保证图挂了不丢信息，也防止两处数据漂移
+  check('技术网络图：文字版与图等价', await evaluate(`
+    (() => {
+      const inGraph = new Set([...document.querySelectorAll('.graph-node.is-tech .graph-label')].map(e => e.textContent.trim()))
+      const inText = new Set()
+      document.querySelectorAll('.graph-outline .outline-group p').forEach(p => {
+        p.textContent.split('·').forEach(part => { const v = part.trim(); if (v) inText.add(v) })
+      })
+      if (inGraph.size !== inText.size) return 'size ' + inGraph.size + ' vs ' + inText.size
+      for (const tech of inGraph) if (!inText.has(tech)) return 'missing ' + tech
+      return true
+    })()
+  `), true)
+
+  // 可访问性：每个节点都要有非空 aria-label，且可被 Tab 聚焦
+  check('技术网络图：节点均有 aria-label', await evaluate(`
+    [...document.querySelectorAll('.graph-node')].every(n => (n.getAttribute('aria-label') || '').trim().length > 0)
+  `), true)
+  check('技术网络图：节点可被 Tab 聚焦', await evaluate(`
+    [...document.querySelectorAll('.graph-node')].every(n => n.getAttribute('tabindex') === '0')
+  `), true)
+
+  // 把"看起来会不会挤成一团"变成可测量的判据，不靠肉眼看图。
+  // 判据不是节点间距而是**标签框重叠量**：两个节点横向相距 40px、纵向同高时，
+  // 节点间距看着够，标签却必然压在一起。返回最严重的一处重叠像素，期望为 0。
+  check('技术网络图：标签互不重叠', await evaluate(`
+    (() => {
+      const items = [...document.querySelectorAll('.graph-node')].map(node => {
+        const m = /translate\\(([-0-9.]+) ([-0-9.]+)\\)/.exec(node.getAttribute('transform') || '')
+        const label = node.querySelector('.graph-label')?.textContent || ''
+        const size = node.classList.contains('is-project') ? 12 : 10
+        let width = 0
+        for (const ch of label) width += /[\\u4e00-\\u9fff\\uff00-\\uffef]/.test(ch) ? size * 1.06 : size * 0.62
+        return m ? { x: Number(m[1]), y: Number(m[2]), halfW: Math.max(width / 2, 16), halfH: 12 } : null
+      }).filter(Boolean)
+      let worst = 0
+      for (let i = 0; i < items.length; i += 1) {
+        for (let j = i + 1; j < items.length; j += 1) {
+          const overlapX = items[i].halfW + items[j].halfW - Math.abs(items[i].x - items[j].x)
+          const overlapY = items[i].halfH + items[j].halfH - Math.abs(items[i].y - items[j].y)
+          if (overlapX > 0 && overlapY > 0) worst = Math.max(worst, Math.min(overlapX, overlapY))
+        }
+      }
+      return Math.round(worst)
+    })()
+  `), 0)
+
+  check('技术网络图：节点都在画布内', await evaluate(`
+    [...document.querySelectorAll('.graph-node')].every(node => {
+      const m = /translate\\(([-0-9.]+) ([-0-9.]+)\\)/.exec(node.getAttribute('transform') || '')
+      if (!m) return false
+      const x = Number(m[1])
+      const y = Number(m[2])
+      return x >= 0 && x <= 1000 && y >= 0 && y <= 680
+    })
+  `), true)
+
+  // 留存视觉证据
+  await evaluate(`document.getElementById('stack')?.scrollIntoView({ block: 'start' })`)
+  await sleep(800)
+  await capture('v15-home-tech-graph.png')
+  await evaluate(`window.scrollTo(0, 0)`)
+  await sleep(400)
+
   // ===== 点击进入详情页 =====
   await evaluate(`document.querySelectorAll('a.project-card')[0].click()`)
   await sleep(2600)
@@ -136,6 +234,16 @@ try {
   check('技术栈首层为前端', await evaluate(`document.querySelector('.stack-layer')?.textContent.trim() || ''`), '前端')
   check('项目结构树已渲染', await evaluate(`document.querySelectorAll('.tree-list li').length`), 14)
   check('目录树带脱敏声明', await evaluate(`(document.querySelector('.tree-legend')?.textContent || '').includes('脱敏摘要')`), true)
+  // IA 顺序：先看结果（截图）再看解释（技术栈与代码结构）。
+  // 这是设计决定而不是排版细节，用 DOM 顺序把它固定住，避免以后被无意改回去。
+  check('截图区在技术栈之前（先看结果再看解释）', await evaluate(`
+    (() => {
+      const body = document.querySelector('.detail-body')
+      const anatomy = document.querySelector('.detail-anatomy')
+      if (!body || !anatomy) return false
+      return !!(body.compareDocumentPosition(anatomy) & Node.DOCUMENT_POSITION_FOLLOWING)
+    })()
+  `), true)
   await capture('v11-detail-lexiflow.png')
   // 技术栈与项目结构在首屏之下，单独截一张作为这两块的留存证据。
   await evaluate(`document.querySelector('.detail-anatomy')?.scrollIntoView({ block: 'start' })`)

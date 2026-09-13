@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { methods, projectFilters, useProjectList } from '../data/projects'
+import TechGraph from '../components/TechGraph.vue'
 import { copyEmail } from '../composables/useToast'
 
 const { projects, loading, apiStatus, load } = useProjectList()
@@ -62,6 +63,16 @@ onMounted(load)
           </RouterLink>
           <p v-if="!filteredProjects.length" class="project-empty">这个分类下暂时没有项目。不为了填满版面而放没有完成度的内容。</p>
         </div>
+      </div>
+    </section>
+
+    <section class="content-section stack-section" id="stack">
+      <div class="shell">
+        <div class="section-heading" v-reveal>
+          <div><p class="eyebrow">02 / TECH STACK</p><h2>五个项目用到的<br /><em>全部技术。</em></h2></div>
+          <p>图上的每条线都对应一个可核验的事实：某个项目用了某项技术。节点越大、越靠中心，说明它被更多项目复用。技术栈全部来自各项目的依赖清单，不列入「计划过但没用上」的技术。</p>
+        </div>
+        <TechGraph v-if="projects.length" :projects="projects" v-reveal="1" />
       </div>
     </section>
 
