@@ -72,6 +72,8 @@ onMounted(load)
           <div><p class="eyebrow">02 / TECH STACK</p><h2>五个项目用到的<br /><em>全部技术。</em></h2></div>
           <p>图上的每条线都对应一个可核验的事实：某个项目用了某项技术。节点越大、越靠中心，说明它被更多项目复用。技术栈全部来自各项目的依赖清单，不列入「计划过但没用上」的技术。</p>
         </div>
+        <!-- 突破版心的范围由组件内部控制：只有 SVG 更宽，
+             状态行与文字版清单留在正文栏内，与本节标题左对齐。 -->
         <TechGraph v-if="projects.length" :projects="projects" v-reveal="1" />
       </div>
     </section>
@@ -79,7 +81,7 @@ onMounted(load)
     <section class="content-section edit-section" id="edit-works">
       <div class="shell">
         <div class="section-heading" v-reveal>
-          <div><p class="eyebrow">02 / VISUAL &amp; EDITING</p><h2>视觉和剪辑，<br /><em>真实素材整理中。</em></h2></div>
+          <div><p class="eyebrow">03 / VISUAL &amp; EDITING</p><h2>视觉和剪辑，<br /><em>真实素材整理中。</em></h2></div>
           <p>这里会放经过授权的剪辑练习与视觉实验。当前只保留方向和结构，不用虚构作品填满版面。</p>
         </div>
         <div class="holding-row" v-reveal>
@@ -93,7 +95,7 @@ onMounted(load)
     <section class="content-section method-section" id="method">
       <div class="shell">
         <div class="section-heading" v-reveal>
-          <div><p class="eyebrow">03 / HOW I WORK</p><h2>从想法到可以交付，<br /><em>每一步都留下证据。</em></h2></div>
+          <div><p class="eyebrow">04 / HOW I WORK</p><h2>从想法到可以交付，<br /><em>每一步都留下证据。</em></h2></div>
           <p>我会先定义问题和边界，再小步实现，用测试和发布记录确认结果。</p>
         </div>
         <div class="method-list">
@@ -104,7 +106,7 @@ onMounted(load)
 
     <section class="content-section about-section" id="about">
       <div class="shell about-grid">
-        <div v-reveal><p class="eyebrow">04 / ABOUT</p><h2>一个持续构建，<br /><em>也持续校准的人。</em></h2></div>
+        <div v-reveal><p class="eyebrow">05 / ABOUT</p><h2>一个持续构建，<br /><em>也持续校准的人。</em></h2></div>
         <div class="about-copy" v-reveal="1">
           <p>我在产品、代码和内容之间工作。喜欢把模糊的问题拆成清晰的界面，也喜欢把一次交付里的判断，沉淀成下一次可以复用的方法。</p>
           <dl>

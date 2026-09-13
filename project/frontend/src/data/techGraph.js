@@ -109,10 +109,15 @@ function mulberry32(seed) {
   }
 }
 
-// 估算标签占据的宽度（像素）。纯函数里量不到真实文字宽度，所以按字符类型估算：
+// 标签字号。导出出去是为了让布局的宽度估算与验收断言用同一份数值——
+// 两处各写一份会漂移，而"布局按 10px 排、断言按 12px 查"会得出错误的结论。
+export const TECH_LABEL_SIZE = 13
+export const PROJECT_LABEL_SIZE = 16
+
+// 估算标签占据的宽度（画布单位）。纯函数里量不到真实文字宽度，所以按字符类型估算：
 // 中日韩字符约等于字号，其余字符约 0.62 倍字号。宁可估宽一点——估窄了会漏掉重叠。
 function estimateLabelWidth(label, kind) {
-  const size = kind === 'project' ? 12 : 10
+  const size = kind === 'project' ? PROJECT_LABEL_SIZE : TECH_LABEL_SIZE
   let width = 0
   for (const char of String(label)) {
     width += /[\u4e00-\u9fff\uff00-\uffef]/.test(char) ? size * 1.06 : size * 0.62
@@ -130,12 +135,14 @@ function estimateLabelWidth(label, kind) {
  * "标签不重叠"断言之后才发现的——原来的节点间距判据只有 16px。
  */
 export function layoutGraph(nodes, edges, options = {}) {
-  const width = options.width ?? 1000
-  const height = options.height ?? 680
+  // 画布是宽幅横条（约 3:1）。之前用 1000×660（1.5:1），渲染到 1360px 宽时
+  // 高度被撑到近 900px，与页面的横向版式冲突——这是比例问题，不是尺寸问题。
+  const width = options.width ?? 1440
+  const height = options.height ?? 580
   const seed = options.seed ?? 20260913
-  const iterations = options.iterations ?? 260
-  const padX = options.padX ?? 10
-  const padY = options.padY ?? 6
+  const iterations = options.iterations ?? 420
+  const padX = options.padX ?? 15
+  const padY = options.padY ?? 11
 
   const random = mulberry32(seed)
   const centerX = width / 2
@@ -166,11 +173,14 @@ export function layoutGraph(nodes, edges, options = {}) {
     })
   }
 
-  const ringRadius = Math.min(width, height) * 0.34
+  // 项目节点钉在外圈，用**椭圆**而不是圆：宽幅画布上圆形会让项目全挤在中间，
+  // 两侧空出一大片。椭圆把 5 个项目沿宽度铺开，正好撑满横条。
+  const ringRadiusX = width * 0.34
+  const ringRadiusY = height * 0.30
   projectNodes.forEach((node, index) => {
     const angle = (index / Math.max(projectNodes.length, 1)) * Math.PI * 2 - Math.PI / 2
-    node.x = centerX + Math.cos(angle) * ringRadius
-    node.y = centerY + Math.sin(angle) * ringRadius
+    node.x = centerX + Math.cos(angle) * ringRadiusX
+    node.y = centerY + Math.sin(angle) * ringRadiusY
     node.pinned = true
   })
 
@@ -219,6 +229,22 @@ export function layoutGraph(nodes, edges, options = {}) {
       const box = boxes.get(node.id)
       node.x = Math.max(box.halfWidth + 6, Math.min(width - box.halfWidth - 6, node.x))
       node.y = Math.max(box.halfHeight + 8, Math.min(height - box.halfHeight - 4, node.y))
+    }
+  }
+
+  // 收尾：只做分离，不再把节点拉回项目中心。
+  // 主循环里力导向与分离同时作用、互相拉扯，残余的几像素重叠就是从这里来的。
+  // 单独跑一段纯分离才能收敛到"标签确实不重叠"的状态。
+  for (let step = 0; step < 320; step += 1) {
+    for (let i = 0; i < nodes.length; i += 1) {
+      for (let j = i + 1; j < nodes.length; j += 1) {
+        separatePair(nodes[i], nodes[j], 0.75)
+      }
+    }
+    for (const node of techNodes) {
+      const box = boxes.get(node.id)
+      node.x = Math.max(box.halfWidth + 6, Math.min(width - box.halfWidth - 6, node.x))
+      node.y = Math.max(box.halfHeight + 6, Math.min(height - box.halfHeight - 4, node.y))
     }
   }
 

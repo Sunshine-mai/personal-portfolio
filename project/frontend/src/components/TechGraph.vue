@@ -6,8 +6,8 @@ const props = defineProps({
   projects: { type: Array, required: true },
 })
 
-const GRAPH_WIDTH = 1000
-const GRAPH_HEIGHT = 680
+const GRAPH_WIDTH = 1440
+const GRAPH_HEIGHT = 580
 const PROXIMITY = 110     // 鼠标离节点多近算"悬停"（比漂移半径小，避免刚靠近就被推开）
 const DRIFT_RADIUS = 220  // 漂移影响半径：这个范围内的节点会绕开光标流动
 const DRIFT_STRENGTH = 14 // 切向漂移的最大位移（画布单位）
@@ -214,8 +214,8 @@ const svgStyle = computed(() => {
 // 点的大小与填充受"深度"影响，配合倾斜读出远近
 function dotRadius(node) {
   const depth = node.depth ?? 0.6
-  const base = node.kind === 'project' ? 9 : (node.reuse > 1 ? 5.5 : 4)
-  return Number((base * (0.78 + 0.44 * depth)).toFixed(2))
+  const base = node.kind === 'project' ? 14 : (node.reuse > 1 ? 8 : 6)
+  return Number((base * (0.8 + 0.42 * depth)).toFixed(2))
 }
 function dotFillOpacity(node) {
   const depth = node.depth ?? 0.6
@@ -306,11 +306,14 @@ const textOutline = computed(() =>
 
 <template>
   <div class="tech-graph">
-    <svg
-      ref="svgRef"
-      class="graph-canvas"
-      :style="svgStyle"
-      :viewBox="`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`"
+    <!-- 只有 SVG 突破正文栏宽；状态行与清单留在栏内，与本页其它文字左对齐。
+         （之前把整块都加宽，导致图下的文字跟着跑到宽版心边界，看着没对齐。） -->
+    <div class="graph-bleed">
+      <svg
+        ref="svgRef"
+        class="graph-canvas"
+        :style="svgStyle"
+        :viewBox="`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`"
       role="group"
       aria-label="技术网络图：项目与技术之间的使用关系，下方有等价的文字版清单"
       @pointermove="onPointerMove"
@@ -356,13 +359,14 @@ const textOutline = computed(() =>
         >
           <!-- 动画只写这一层的 transform，外层基准坐标保持不变 -->
           <g class="node-inner">
-            <circle v-if="node.kind === 'tech' && node.reuse > 1" class="node-halo" :r="node.reuse > 3 ? 13 : 11" />
+            <circle v-if="node.kind === 'tech' && node.reuse > 1" class="node-halo" :r="node.reuse > 3 ? 18 : 15" />
             <circle class="node-dot" :r="dotRadius(node)" :fill-opacity="dotFillOpacity(node)" />
-            <text class="graph-label" :y="node.kind === 'project' ? -16 : -10">{{ node.kind === 'project' ? node.shortLabel : node.label }}</text>
+            <text class="graph-label" :y="node.kind === 'project' ? -20 : -13">{{ node.kind === 'project' ? node.shortLabel : node.label }}</text>
           </g>
         </g>
       </g>
-    </svg>
+      </svg>
+    </div>
 
     <p class="graph-status" aria-live="polite">
       <template v-if="focusedNode">{{ focusText(focusedNode) }}</template>

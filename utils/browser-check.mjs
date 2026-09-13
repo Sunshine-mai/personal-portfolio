@@ -10,6 +10,9 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { existsSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+// 标签字号从被检验的源码里导入，而不是在断言里另写一份：
+// 两处各写一份会漂移，而"布局按一个字号排、断言按另一个字号查"会得出错误结论。
+import { TECH_LABEL_SIZE, PROJECT_LABEL_SIZE } from '../project/frontend/src/data/techGraph.js'
 
 const CHROME_CANDIDATES = [
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -113,14 +116,48 @@ try {
   check('卡片链接指向详情路由', await evaluate(`document.querySelector('a.project-card')?.getAttribute('href') || ''`), value => /^\/projects\//.test(value))
   check('页面内不再有抽屉元素', await evaluate(`!document.querySelector('.drawer')`), true)
 
-  // 页内锚点：顶部导航吸顶 72px，跳转目标必须留出它的高度，否则标题会被压在导航栏下面。
-  await evaluate(`document.getElementById('projects').scrollIntoView({ block: 'start' })`)
-  await sleep(900)
-  check('锚点跳转后目标区块未被吸顶导航遮挡', await evaluate(`Math.round(document.getElementById('projects').getBoundingClientRect().top) >= 80`), true)
+  // 页内锚点：顶部导航吸顶 72px。
+  // 必须走**点导航链接**这条路径：之前只测了 scrollIntoView，而
+  // scrollIntoView 会遵守 CSS 的 scroll-margin-top，Vue Router 不会。
+  // 结果是断言通过、点导航时标题却被盖住——测了另一条路径，等于没测。
+  // 上限同样要断言：之前只查下限，编号落到 160px（空隙太大）也照样通过。
+  const NAV_TARGETS = {
+    代表项目: 'projects',
+    技术栈: 'stack',
+    视觉与剪辑: 'edit-works',
+    工程方法: 'method',
+    关于我: 'about',
+  }
+  for (const [label, id] of Object.entries(NAV_TARGETS)) {
+    await evaluate(`
+      [...document.querySelectorAll('.nav-links a')].find(a => a.textContent.trim() === '${label}')?.click()
+    `)
+    await sleep(1500)
+    check(`点「${label}」后编号落位合适（80~120px）`, await evaluate(`
+      (() => {
+        const top = Math.round(document.querySelector('#${id} .eyebrow').getBoundingClientRect().top)
+        // 最后一节（关于我）无论怎么滚都到不了 96px：页面已到底，无法再往上顶。
+        // 这是文档长度的物理限制，不是缺陷。所以断言写成"要么落位合适，要么已到底"，
+        // 而不是把最后一节直接排除——那样会掩盖真正的问题。
+        const atBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2
+        return { top, atBottom }
+      })()
+    `), v => v.top >= 80 && (v.top <= 120 || v.atBottom))
+  }
   await evaluate(`window.scrollTo(0, 0)`)
-  await sleep(500)
+  await sleep(600)
 
   // ===== 首页技术网络图 =====
+  // 分节编号必须唯一且连续。加网络图那一节时我把新的写成 02，
+  // 而"视觉与剪辑"本来就是 02，于是出现两个 02、后面编号全部错位。
+  // 这是纯人工维护的数字，所以需要断言守着。
+  check('首页分节编号唯一且连续', await evaluate(`
+    [...document.querySelectorAll('.eyebrow')]
+      .map(el => (el.textContent.match(/^(\\d+)\\s*\\//) || [])[1])
+      .filter(Boolean)
+      .join(',')
+  `), '01,02,03,04,05')
+
   check('技术网络图：项目节点数', await evaluate(`document.querySelectorAll('.graph-node.is-project').length`), 5)
   check('技术网络图：技术节点数', await evaluate(`document.querySelectorAll('.graph-node.is-tech').length`), 36)
   check('技术网络图：连线数', await evaluate(`document.querySelectorAll('.graph-edge').length`), 67)
@@ -220,10 +257,10 @@ try {
       const items = [...document.querySelectorAll('.graph-node')].map(node => {
         const m = /translate\\(([-0-9.]+) ([-0-9.]+)\\)/.exec(node.getAttribute('transform') || '')
         const label = node.querySelector('.graph-label')?.textContent || ''
-        const size = node.classList.contains('is-project') ? 12 : 10
+        const size = node.classList.contains('is-project') ? ${PROJECT_LABEL_SIZE} : ${TECH_LABEL_SIZE}
         let width = 0
         for (const ch of label) width += /[\\u4e00-\\u9fff\\uff00-\\uffef]/.test(ch) ? size * 1.06 : size * 0.62
-        return m ? { x: Number(m[1]), y: Number(m[2]), halfW: Math.max(width / 2, 16), halfH: 12 } : null
+        return m ? { x: Number(m[1]), y: Number(m[2]), halfW: Math.max(width / 2, 16), halfH: 15 } : null
       }).filter(Boolean)
       let worst = 0
       for (let i = 0; i < items.length; i += 1) {
@@ -243,7 +280,7 @@ try {
       if (!m) return false
       const x = Number(m[1])
       const y = Number(m[2])
-      return x >= 0 && x <= 1000 && y >= 0 && y <= 680
+      return x >= 0 && x <= 1440 && y >= 0 && y <= 580
     })
   `), true)
 
@@ -258,7 +295,7 @@ try {
   await evaluate(`document.querySelectorAll('a.project-card')[0].click()`)
   await sleep(2600)
   check('点击后进入详情页', await evaluate(`location.pathname`), '/projects/ai-translator')
-  check('详情页标题已渲染', await evaluate(`document.querySelector('.detail-hero h1')?.textContent.trim() || ''`), 'LexiFlow')
+  check('详情页标题已渲染', await evaluate(`document.querySelector('.detail-hero h1')?.textContent.trim() || ''`), '词流 LexiFlow')
   check('详情页有返回链接', await evaluate(`!!document.querySelector('.detail-back')`), true)
   check('首屏事实清单已渲染（状态/角色/仓库名/证据）', await evaluate(`document.querySelectorAll('.detail-facts dd').length`), 4)
   check('图组缩略图数量', await evaluate(`document.querySelectorAll('.gallery-thumbs button').length`), 3)
@@ -315,7 +352,7 @@ try {
 
   // ===== 深链：直接访问详情页 =====
   await goto('/projects/ai-second-brain')
-  check('深链直达详情页', await evaluate(`document.querySelector('.detail-hero h1')?.textContent.trim() || ''`), 'Folio')
+  check('深链直达详情页', await evaluate(`document.querySelector('.detail-hero h1')?.textContent.trim() || ''`), '问册 Folio')
   check('深链下图组正常', await evaluate(`document.querySelectorAll('.gallery-thumbs button').length`), 3)
   check('展示名与仓库名分离', await evaluate(`!!document.querySelector('.detail-hero h1')`), true)
 
@@ -335,6 +372,14 @@ try {
   check('合作项目已使用真实截图', await evaluate(`document.querySelectorAll('.gallery-thumbs button').length`), 3)
   check('合作项目不再显示设计版式徽标', await evaluate(`!document.querySelector('.gallery-kind')`), true)
   check('合作项目图注已渲染', await evaluate(`(document.querySelector('.gallery-caption')?.textContent || '').length > 10`), true)
+  // "挤"是可测量的：看每一层的标签换了几段。大学新闻网那一段内容最多
+  // （后端一行 6 个标签），列宽如果按内容最少的案例来定，这里就会挤成一团。
+  check('合作项目技术栈没有挤成一团（每层标签最多 3 段）', await evaluate(`
+    Math.max(...[...document.querySelectorAll('.stack-row')].map(row => {
+      const tops = new Set([...row.querySelectorAll('.stack-item')].map(el => Math.round(el.getBoundingClientRect().top)))
+      return tops.size
+    }))
+  `), segments => segments <= 3)
   await capture('v11-detail-collab.png')
 
   // ===== 返回首页并验证筛选 =====
@@ -352,7 +397,7 @@ try {
 
   await pickTab('练习与实验')
   await sleep(400)
-  check('练习与实验只含练习场项目', await evaluate(`document.querySelector('.project-card h3')?.textContent.trim() || ''`), 'LexiFlow 练习区')
+  check('练习与实验只含练习场项目', await evaluate(`document.querySelector('.project-card h3')?.textContent.trim() || ''`), '词流练习区')
 
   await pickTab('合作项目')
   await sleep(400)
@@ -360,7 +405,7 @@ try {
 
   await pickTab('独立开发')
   await sleep(400)
-  check('独立开发不含练习场与合作项目', await evaluate(`[...document.querySelectorAll('.project-card h3')].map(h => h.textContent.trim())`), titles => titles.length === 3 && !titles.includes('LexiFlow 练习区') && !titles.includes('大学新闻网'))
+  check('独立开发不含练习场与合作项目', await evaluate(`[...document.querySelectorAll('.project-card h3')].map(h => h.textContent.trim())`), titles => titles.length === 3 && !titles.includes('词流练习区') && !titles.includes('大学新闻网'))
 
   await evaluate(`[...document.querySelectorAll('[role="tab"]')].find(b => b.textContent.trim() === '全部').click()`)
   await sleep(400)

@@ -60,12 +60,12 @@ a.project-card:focus-visible{outline:2px solid var(--warm);outline-offset:3px}
 .detail-anatomy{padding:56px 0 8px}
 .anatomy-block + .anatomy-block{margin-top:50px}
 .stack-list{display:grid}
-.stack-row{position:relative;display:grid;grid-template-columns:92px minmax(0,1fr) 34ch;gap:18px;align-items:baseline;padding:15px 0;border-top:1px solid var(--line)}
+.stack-row{position:relative;display:grid;grid-template-columns:108px minmax(0,1fr) 36ch;gap:22px;align-items:baseline;padding:19px 0;border-top:1px solid var(--line)}
 .stack-row:first-child{border-top:0}
-.stack-row + .stack-row:before{content:'\2193';position:absolute;top:-10px;left:40px;padding:0 5px;background:var(--bg);color:var(--faint);font:11px var(--mono)}
+.stack-row + .stack-row:before{content:'\2193';position:absolute;top:-10px;left:46px;padding:0 5px;background:var(--bg);color:var(--faint);font:11px var(--mono)}
 .stack-layer{color:var(--warm);font:500 11px var(--mono);letter-spacing:.12em}
-.stack-items{display:flex;flex-wrap:wrap;gap:6px}
-.stack-item{border:1px solid var(--line);background:var(--panel-2);padding:3px 9px;color:var(--ink);font:11px var(--mono)}
+.stack-items{display:flex;flex-wrap:wrap;gap:8px}
+.stack-item{border:1px solid var(--line);background:var(--panel-2);padding:4px 10px;color:var(--ink);font:11px var(--mono)}
 .stack-note{color:var(--faint);font-size:12px}
 .tree-card{border:1px solid var(--line);background:var(--panel);padding:20px 22px}
 .tree-root{margin:0 0 12px;color:var(--warm-soft);font:12px var(--mono)}
@@ -81,7 +81,11 @@ a.project-card:focus-visible{outline:2px solid var(--warm);outline-offset:3px}
    叠加后必然成为毛线球（详见 doc/26-tech-graph-design.md）。
    节点用真实 DOM（SVG）而不是 canvas：可聚焦、有 aria-label、可断言，
    屏幕阅读器能读到；canvas 对它完全不可见。 */
-.stack-section{padding:72px 0}
+.stack-section{padding:64px 0}
+/* 只有图突破正文栏宽，标题与说明仍用全站统一的版心。
+   之前把整节的内容栏都加宽，结果标题跟着左移、脱离了统一左边距，
+   在一堆等宽分节里显得格外突出——那是改错了对象。 */
+.graph-bleed{width:min(1440px,calc(100vw - 40px));margin-left:50%;transform:translateX(-50%)}
 .graph-canvas{display:block;width:100%;height:auto;overflow:visible;transform-style:preserve-3d;transition:transform .2s ease-out;will-change:transform}
 .graph-edge{stroke:var(--line);stroke-width:1;transition:stroke .18s ease,opacity .18s ease}
 .graph-edge.is-lit{stroke:var(--warm-soft);stroke-width:1.6}
@@ -89,13 +93,13 @@ a.project-card:focus-visible{outline:2px solid var(--warm);outline-offset:3px}
 .graph-node{cursor:pointer;outline:none}
 .graph-node .node-dot{fill:var(--muted);transition:fill .18s ease}
 .graph-node .node-halo{fill:none;stroke:var(--faint);stroke-width:1;opacity:.55}
-.graph-label{fill:var(--muted);font:10px var(--mono);text-anchor:middle;pointer-events:none;transition:fill .18s ease}
+.graph-label{fill:var(--muted);font:13px var(--mono);text-anchor:middle;pointer-events:none;transition:fill .18s ease}
 .graph-node.is-frontend .node-dot{fill:var(--teal)}
 .graph-node.is-backend .node-dot{fill:var(--warm)}
 .graph-node.is-data .node-dot{fill:var(--warm-soft)}
 .graph-node.is-runtime .node-dot{fill:var(--faint)}
 .graph-node.is-project .node-dot{fill:var(--ink);stroke:var(--bg);stroke-width:3}
-.graph-node.is-project .graph-label{fill:var(--ink);font:500 12px var(--serif)}
+.graph-node.is-project .graph-label{fill:var(--ink);font:500 16px var(--serif)}
 .graph-node.is-lit .node-dot{stroke:var(--warm-soft);stroke-width:2}
 .graph-node.is-lit .graph-label{fill:var(--ink)}
 .graph-node.is-dim{opacity:.28}
