@@ -85,6 +85,7 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
               <div><dt>状态</dt><dd>{{ project.status || project.outcome }}</dd></div>
               <div><dt>我的角色</dt><dd>{{ project.role }}</dd></div>
               <div v-if="project.repoName"><dt>仓库名</dt><dd>{{ project.repoName }}</dd></div>
+              <div v-if="project.evidence" class="fact-evidence"><dt>证据</dt><dd>{{ project.evidence }}</dd></div>
             </dl>
           </div>
         </div>
@@ -129,8 +130,6 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
                   <img :src="slide.src" alt="" />
                 </button>
               </div>
-              <p class="gallery-hint">← → 切换截图 · 点击图片放大</p>
-              <p v-if="project.evidence" class="gallery-evidence">证据状态：{{ project.evidence }}</p>
             </div>
 
             <div v-if="zoomed && currentSlide" class="lightbox" role="dialog" aria-modal="true" aria-label="放大查看截图" @click.self="zoomed = false">
@@ -144,11 +143,11 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
 
           <aside class="detail-aside" v-reveal="1">
             <div class="detail-card">
-              <h3>问题与边界</h3>
+              <h3>它是怎么构成的</h3>
               <p>{{ project.background }}</p>
             </div>
             <div class="detail-card">
-              <h3>下一步</h3>
+              <h3>进度与下一步</h3>
               <p>{{ project.outcome }}</p>
             </div>
           </aside>

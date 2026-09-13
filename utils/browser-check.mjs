@@ -8,6 +8,8 @@
 import { spawn } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { existsSync, writeFileSync, mkdirSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const CHROME_CANDIDATES = [
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -15,7 +17,10 @@ const CHROME_CANDIDATES = [
 ]
 const baseUrl = (process.argv[2] || 'http://127.0.0.1:1001/').replace(/\/$/, '')
 const debugPort = 9333
-const shotDir = 'gui-test-screenshots'
+// 截图目录固定按脚本所在的仓库根解析，而不是按当前工作目录。
+// 否则从 project/frontend 等目录运行时，同一份验收产物会散落到第二处，
+// 让人误读旧截图（本目录曾经因此被读错过两次）。
+const shotDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'gui-test-screenshots')
 
 const chromePath = CHROME_CANDIDATES.find(candidate => existsSync(candidate))
 if (!chromePath) {
@@ -85,7 +90,7 @@ async function goto(path, waitMs = 2600) {
 async function capture(name) {
   mkdirSync(shotDir, { recursive: true })
   const response = await send('Page.captureScreenshot', { format: 'png' })
-  writeFileSync(`${shotDir}/${name}`, Buffer.from(response.result.data, 'base64'))
+  writeFileSync(join(shotDir, name), Buffer.from(response.result.data, 'base64'))
   console.log(`SHOT  ${shotDir}/${name}`)
 }
 
@@ -114,10 +119,11 @@ try {
   check('点击后进入详情页', await evaluate(`location.pathname`), '/projects/ai-translator')
   check('详情页标题已渲染', await evaluate(`document.querySelector('.detail-hero h1')?.textContent.trim() || ''`), 'LexiFlow')
   check('详情页有返回链接', await evaluate(`!!document.querySelector('.detail-back')`), true)
-  check('详情页状态、角色与仓库名已渲染', await evaluate(`document.querySelectorAll('.detail-facts dd').length`), 3)
+  check('首屏事实清单已渲染（状态/角色/仓库名/证据）', await evaluate(`document.querySelectorAll('.detail-facts dd').length`), 4)
   check('图组缩略图数量', await evaluate(`document.querySelectorAll('.gallery-thumbs button').length`), 3)
   check('图组计数文案', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '1 / 3')
-  check('证据状态行已渲染', await evaluate(`document.querySelector('.gallery-evidence')?.textContent.includes('证据状态') || false`), true)
+  // 证据（含迁移次数、测试数等硬数字）已提到首屏事实清单，二级页面不再重复展示，避免同一信息出现两次。
+  check('首屏证据事实施已渲染', await evaluate(`(document.querySelector('.detail-facts .fact-evidence dd')?.textContent || '').trim().length > 10`), true)
   await capture('v11-detail-lexiflow.png')
 
   // 图组翻页：左右箭头位于图片两侧
