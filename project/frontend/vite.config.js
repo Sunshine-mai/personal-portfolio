@@ -7,10 +7,14 @@ import { fileURLToPath } from 'node:url'
 const rootDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(rootDir, '..', '..')
 
-// 读取当前提交号。刻意不调用 git 子进程，直接读 .git/HEAD 与它指向的引用文件：
-// 这样构建不依赖外部进程，在任何环境下都能拿到版本标识。
+// 读取当前提交号，按优先级取：
+//   1. BUILD_COMMIT —— 由部署脚本显式传入
+//   2. COMMIT_REF   —— Netlify 构建时自动提供（平台会注入，无需在 netlify.toml 里配置）
+//   3. 直接读 .git/HEAD 与它指向的引用文件 —— 本地构建用；刻意不调用 git 子进程，
+//      这样构建不依赖外部进程。
 function readCommit() {
   if (process.env.BUILD_COMMIT) return process.env.BUILD_COMMIT
+  if (process.env.COMMIT_REF) return process.env.COMMIT_REF.slice(0, 7)
   try {
     const gitDir = join(repoRoot, '.git')
     const head = readFileSync(join(gitDir, 'HEAD'), 'utf8').trim()
