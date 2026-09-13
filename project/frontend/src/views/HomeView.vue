@@ -4,9 +4,18 @@ import { methods, projectFilters, useProjectList } from '../data/projects'
 import TechGraph from '../components/TechGraph.vue'
 import { copyEmail } from '../composables/useToast'
 import { useHeroAmbience } from '../composables/useHeroAmbience'
+import { editWorks } from '../data/editWorks'
 
 const { projects, loading, apiStatus, load } = useProjectList()
 const activeFilter = ref('all')
+
+// 剪辑作品：正在站内播放的那一条，以及封面外链已失效的那几条。
+// brokenCovers 用**重新赋值**而不是 push：ref 里的数组原地改不会触发更新。
+const playingBvid = ref(null)
+const brokenCovers = ref([])
+function markCoverBroken(bvid) {
+  if (!brokenCovers.value.includes(bvid)) brokenCovers.value = [...brokenCovers.value, bvid]
+}
 
 const filteredProjects = computed(() => projects.value.filter(project => activeFilter.value === 'all' || project.filter === activeFilter.value))
 const independentCount = computed(() => projects.value.filter(project => project.filter === 'independent').length)
@@ -134,13 +143,64 @@ onMounted(load)
     <section class="content-section edit-section" id="edit-works">
       <div class="shell">
         <div class="section-heading" v-reveal>
-          <span class="eyebrow">03</span><h2>视觉和剪辑，<br /><em>真实素材整理中。</em></h2>
-          <p>这里会放经过授权的剪辑练习与视觉实验。当前只保留方向和结构，不用虚构作品填满版面。</p>
+          <span class="eyebrow">03</span><h2>视觉和剪辑，<br /><em>作品都在这里。</em></h2>
+          <p>全部是已发布的作品，标题、时长与发布日期由脚本从平台接口读取，不手抄。视频由平台托管播放，站点不存视频文件。点击封面播放。</p>
         </div>
-        <div class="holding-row" v-reveal>
-          <span>EDIT 01 / MATERIAL HOLD</span>
-          <div><h3>一条信息的三种节奏</h3><p>等待经授权的真实片段截图，补充片长、版本和发布链接。</p></div>
-          <span class="hold-status">待补真实素材</span>
+
+        <!-- 封面外链 + 点击才挂载播放器。
+             不预先渲染 iframe：那是三方播放器，4 个一起挂会拖慢首屏，
+             也会在访客没点开之前就把他交给对方的脚本。点开才加载，是一次明确的选择。 -->
+        <div class="edit-grid">
+          <article
+            v-for="(work, index) in editWorks"
+            :key="work.bvid"
+            class="edit-card"
+            v-reveal="index + 1"
+          >
+            <div class="edit-stage">
+              <iframe
+                v-if="playingBvid === work.bvid"
+                class="edit-player"
+                :src="`${work.embed}&danmaku=0&high_quality=1`"
+                :title="`播放《${work.title}》`"
+                scrolling="no"
+                frameborder="no"
+                framespacing="0"
+                allowfullscreen="true"
+              ></iframe>
+              <template v-else>
+                <!-- 封面已本地化到 public/assets/edit-works/，所以不再需要
+                     referrerpolicy="no-referrer"——那条是专门给 B 站图床的防盗链用的
+                     （实测带外站 Referer 返回 403）。
+                     onerror 兜底保留：本地文件也可能缺失，缺了就显示占位而不是裂图。 -->
+                <img
+                  v-if="!brokenCovers.includes(work.bvid)"
+                  class="edit-cover"
+                  :src="work.cover"
+                  :alt="`《${work.title}》封面`"
+                  loading="lazy"
+                  @error="markCoverBroken(work.bvid)"
+                />
+                <!-- 外链会静默腐烂。挂了就显示占位，而不是留一个裂图在作品集上。 -->
+                <span v-else class="edit-cover-fallback" aria-hidden="true">{{ work.title.slice(0, 1) }}</span>
+                <button
+                  type="button"
+                  class="edit-play"
+                  :aria-label="`播放《${work.title}》`"
+                  @click="playingBvid = work.bvid"
+                >
+                  <span class="edit-play-icon" aria-hidden="true">▶</span>
+                  <span>{{ work.duration }}</span>
+                </button>
+              </template>
+            </div>
+            <h3>{{ work.title }}</h3>
+            <p class="edit-meta">
+              {{ work.publishedAt }}
+              <a :href="work.url" target="_blank" rel="noopener noreferrer">哔哩哔哩 ↗</a>
+            </p>
+          </article>
+          <p v-if="!editWorks.length" class="project-empty">暂时没有已发布的作品。</p>
         </div>
       </div>
     </section>

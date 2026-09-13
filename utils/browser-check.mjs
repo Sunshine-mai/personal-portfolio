@@ -330,6 +330,45 @@ try {
   check('卡片链接指向详情路由', await evaluate(`document.querySelector('a.project-card')?.getAttribute('href') || ''`), value => /^\/projects\//.test(value))
   check('页面内不再有抽屉元素', await evaluate(`!document.querySelector('.drawer')`), true)
 
+  // ===== 首页 03 节：剪辑作品（外链方案）=====
+  // 封面是第三方外链，所以有三条必须守住的，缺一条线上就会出问题：
+  //   https —— 接口返回的是 http://，不改写会被浏览器的混合内容策略拦掉；
+  //   referrerpolicy=no-referrer —— 实测 B 站图床带外站 Referer 返回 403，不加封面会全裂；
+  //   不预先挂载三方播放器 —— 否则首屏就要为 4 个 iframe 付出代价。
+  check('剪辑作品卡片已渲染', await evaluate(`document.querySelectorAll('.edit-card').length`), 4)
+  // 封面已从 B 站外链改为本地文件：外链会静默腐烂，且访客打开首页时会碰到第三方 CDN。
+  check('封面已本地化，不再依赖 B 站外链', await evaluate(`
+    [...document.querySelectorAll('.edit-cover')].every(img => (img.getAttribute('src') || '').startsWith('/assets/edit-works/'))
+  `), true)
+  // 光有路径不够——本地文件也可能缺失。滚到这一节让 lazy 图真正加载，
+  // 再量 naturalWidth。只断言"属性写对了"等于没测封面到底能不能显示。
+  await evaluate(`document.querySelector('#edit-works').scrollIntoView({ behavior: 'instant', block: 'start' })`)
+  await sleep(1500)
+  check('封面文件都真实加载到了（不是裂图）', await evaluate(`
+    (() => {
+      const imgs = [...document.querySelectorAll('.edit-cover')]
+      return { 总数: imgs.length, 已加载: imgs.filter(i => i.complete && i.naturalWidth > 0).length }
+    })()
+  `), v => v.总数 === 4 && v.已加载 === 4)
+  await evaluate(`window.scrollTo(0, 0)`)
+  await sleep(600)
+  check('默认不预先挂载三方播放器', await evaluate(`document.querySelectorAll('.edit-player').length`), 0)
+  check('卡片显示了时长与发布日期', await evaluate(`
+    (() => {
+      const card = document.querySelector('.edit-card')
+      return {
+        时长: card.querySelector('.edit-play span:last-child').textContent.trim(),
+        元信息: card.querySelector('.edit-meta').textContent.trim(),
+      }
+    })()
+  `), v => /^\d{2}:\d{2}$/.test(v.时长) && /\d{4}-\d{2}-\d{2}/.test(v.元信息))
+  await evaluate(`document.querySelector('.edit-play').click()`)
+  await sleep(600)
+  check('点了封面才挂载播放器', await evaluate(`document.querySelectorAll('.edit-player').length`), 1)
+  await evaluate(`[...document.querySelectorAll('.edit-play')][0].click()`)
+  await sleep(600)
+  check('同时只挂载一个播放器', await evaluate(`document.querySelectorAll('.edit-player').length`), 1)
+
   // 页内锚点：顶部导航吸顶 72px。
   // 必须走**点导航链接**这条路径：之前只测了 scrollIntoView，而
   // scrollIntoView 会遵守 CSS 的 scroll-margin-top，Vue Router 不会。
