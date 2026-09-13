@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { buildTechGraph, layoutGraph } from '../data/techGraph.js'
 
 const props = defineProps({
@@ -8,9 +8,13 @@ const props = defineProps({
 
 const GRAPH_WIDTH = 1000
 const GRAPH_HEIGHT = 680
-const PROXIMITY = 76 // 鼠标离节点多近算"靠近"，单位是 viewBox 坐标
+const PROXIMITY = 76      // 鼠标离节点多近算"靠近"
+const DRIFT_RADIUS = 210  // 鼠标影响范围：这个半径内的节点会被推开一点
+const DRIFT_STRENGTH = 20 // 推开的最大距离（画布单位）
+const HOVER_SCALE = 1.5   // 悬停节点放大倍数
+const NEIGHBOUR_SCALE = 1.14
 
-// 数据与布局都是纯函数、结果确定：位置不会每次刷新都不一样，因此可以断言、可以截图比对。
+// 数据与基准布局都是纯函数、结果确定，不会每次刷新都变——所以可以断言、可以截图比对。
 const graph = buildTechGraph(props.projects)
 const layout = layoutGraph(graph.nodes, graph.edges, {
   width: GRAPH_WIDTH,
@@ -23,9 +27,7 @@ const lockedId = ref(null)
 
 // 锁定的优先级高于悬停：点过之后移动鼠标不应改变高亮。
 const focusedId = computed(() => lockedId.value ?? hoverId.value)
-const focusedNode = computed(() =>
-  graph.nodes.find(node => node.id === focusedId.value) || null
-)
+const focusedNode = computed(() => graph.nodes.find(node => node.id === focusedId.value) || null)
 
 const neighbourMap = computed(() => {
   const map = new Map()
@@ -38,7 +40,6 @@ const neighbourMap = computed(() => {
   return map
 })
 
-// null 表示"当前没有高亮"，此时所有节点都保持常态。
 const litNodes = computed(() => {
   if (!focusedId.value) return null
   const set = new Set([focusedId.value])
@@ -78,38 +79,156 @@ function focusText(node) {
   return `${node.label} · 用于 ${projects.join('、')}`
 }
 
-function onPointerMove(event) {
-  if (lockedId.value) return
-  const svg = svgRef.value
-  if (!svg) return
-  const rect = svg.getBoundingClientRect()
-  if (!rect.width || !rect.height) return
-  const x = ((event.clientX - rect.left) / rect.width) * GRAPH_WIDTH
-  const y = ((event.clientY - rect.top) / rect.height) * GRAPH_HEIGHT
+// ── 动画层 ──────────────────────────────────────────────────────────────────
+// 基准坐标（外层 <g> 的 transform 属性）永远不动，动画只写内层 <g>：
+// 这样"图会不会动"与"布局是否确定"互不干扰，断言读基准坐标，不受动画影响。
+const innerById = new Map()
+const current = new Map()  // nodeId -> { dx, dy, scale }
+const target = new Map()
+let frame = null
+let pointerX = null
+let pointerY = null
 
-  let nearest = null
-  let nearestDistance = PROXIMITY
+function prefersReducedMotion() {
+  return typeof window !== 'undefined'
+    && window.matchMedia
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+function ensureState() {
   for (const node of graph.nodes) {
-    const distance = Math.hypot(node.x - x, node.y - y)
-    if (distance < nearestDistance) {
-      nearestDistance = distance
-      nearest = node
+    if (!current.has(node.id)) current.set(node.id, { dx: 0, dy: 0, scale: 1 })
+    if (!target.has(node.id)) target.set(node.id, { dx: 0, dy: 0, scale: 1 })
+  }
+}
+
+function writeInner(nodeId) {
+  const element = innerById.get(nodeId)
+  if (!element) return
+  const state = current.get(nodeId)
+  const moved = Math.abs(state.dx) > 0.01 || Math.abs(state.dy) > 0.01 || Math.abs(state.scale - 1) > 0.001
+  element.setAttribute('transform', moved
+    ? `translate(${state.dx.toFixed(2)} ${state.dy.toFixed(2)}) scale(${state.scale.toFixed(3)})`
+    : '')
+}
+
+function tick() {
+  ensureState()
+  let unsettled = false
+  for (const node of graph.nodes) {
+    const now = current.get(node.id)
+    const want = target.get(node.id)
+    now.dx += (want.dx - now.dx) * 0.18
+    now.dy += (want.dy - now.dy) * 0.18
+    now.scale += (want.scale - now.scale) * 0.18
+    if (Math.abs(want.dx - now.dx) > 0.05 || Math.abs(want.dy - now.dy) > 0.05 || Math.abs(want.scale - now.scale) > 0.002) {
+      unsettled = true
+    } else {
+      now.dx = want.dx
+      now.dy = want.dy
+      now.scale = want.scale
+    }
+    writeInner(node.id)
+  }
+  if (unsettled || pointerX !== null) {
+    frame = requestAnimationFrame(tick)
+  } else {
+    frame = null
+  }
+}
+
+function startLoop() {
+  if (frame === null) frame = requestAnimationFrame(tick)
+}
+
+function recomputeTargets() {
+  ensureState()
+  const focus = focusedId.value
+  const neighbours = focus ? neighbourMap.value.get(focus) || new Set() : new Set()
+
+  for (const node of graph.nodes) {
+    const want = target.get(node.id)
+    // 1) 悬停放大
+    if (node.id === focus) want.scale = HOVER_SCALE
+    else if (neighbours.has(node.id)) want.scale = NEIGHBOUR_SCALE
+    else want.scale = 1
+
+    // 2) 鼠标附近的技术节点被轻轻推开（项目节点钉住不动，它们是图的骨架）
+    want.dx = 0
+    want.dy = 0
+    if (pointerX !== null && node.kind === 'tech') {
+      const dx = node.x - pointerX
+      const dy = node.y - pointerY
+      const distance = Math.hypot(dx, dy)
+      if (distance < DRIFT_RADIUS && distance > 0.01) {
+        const falloff = (1 - distance / DRIFT_RADIUS) ** 2
+        const push = falloff * DRIFT_STRENGTH
+        want.dx = (dx / distance) * push
+        want.dy = (dy / distance) * push
+      }
     }
   }
-  hoverId.value = nearest ? nearest.id : null
+}
+
+function resetTargets() {
+  ensureState()
+  for (const want of target.values()) {
+    want.dx = 0
+    want.dy = 0
+    want.scale = 1
+  }
+}
+
+function toGraphCoords(event) {
+  const rect = svgRef.value?.getBoundingClientRect()
+  if (!rect || !rect.width || !rect.height) return null
+  return {
+    x: ((event.clientX - rect.left) / rect.width) * GRAPH_WIDTH,
+    y: ((event.clientY - rect.top) / rect.height) * GRAPH_HEIGHT,
+  }
+}
+
+function onPointerMove(event) {
+  if (prefersReducedMotion()) return
+  const point = toGraphCoords(event)
+  if (!point) return
+  pointerX = point.x
+  pointerY = point.y
+
+  if (!lockedId.value) {
+    let nearest = null
+    let nearestDistance = PROXIMITY
+    for (const node of graph.nodes) {
+      const distance = Math.hypot(node.x - point.x, node.y - point.y)
+      if (distance < nearestDistance) {
+        nearestDistance = distance
+        nearest = node
+      }
+    }
+    hoverId.value = nearest ? nearest.id : null
+  }
+  recomputeTargets()
+  startLoop()
 }
 
 function onPointerLeave() {
+  pointerX = null
+  pointerY = null
   if (!lockedId.value) hoverId.value = null
+  resetTargets()
+  startLoop()
 }
 
 function toggleLock(nodeId) {
   lockedId.value = lockedId.value === nodeId ? null : nodeId
+  recomputeTargets()
+  startLoop()
 }
 
 function clearAll() {
   lockedId.value = null
   hoverId.value = null
+  onPointerLeave()
 }
 
 function onNodeKeydown(event, nodeId) {
@@ -119,6 +238,20 @@ function onNodeKeydown(event, nodeId) {
   }
   if (event.key === 'Escape') clearAll()
 }
+
+onMounted(() => {
+  if (!svgRef.value) return
+  svgRef.value.querySelectorAll('.graph-node').forEach((group) => {
+    const inner = group.querySelector('.node-inner')
+    if (inner) innerById.set(group.dataset.nodeId, inner)
+  })
+  ensureState()
+})
+
+onBeforeUnmount(() => {
+  if (frame !== null) cancelAnimationFrame(frame)
+  frame = null
+})
 
 // 文字版：与图信息等价，供读屏用户与图渲染失败时使用。
 const textOutline = computed(() =>
@@ -165,6 +298,7 @@ const textOutline = computed(() =>
           v-for="node in graph.nodes"
           :key="node.id"
           class="graph-node"
+          :data-node-id="node.id"
           :class="[
             node.kind === 'project' ? 'is-project' : 'is-tech',
             node.kind === 'tech' ? `is-${node.group}` : '',
@@ -177,19 +311,22 @@ const textOutline = computed(() =>
           :transform="`translate(${node.x} ${node.y})`"
           @click.stop="toggleLock(node.id)"
           @keydown="onNodeKeydown($event, node.id)"
-          @focus="hoverId = node.id"
+          @focus="hoverId = node.id; recomputeTargets(); startLoop()"
           @blur="onPointerLeave"
         >
-          <circle v-if="node.kind === 'tech' && node.reuse > 1" class="node-halo" :r="node.reuse > 3 ? 13 : 11" />
-          <circle class="node-dot" :r="node.kind === 'project' ? 9 : (node.reuse > 1 ? 5.5 : 4)" />
-          <text class="graph-label" :y="node.kind === 'project' ? -16 : -10">{{ node.kind === 'project' ? node.shortLabel : node.label }}</text>
+          <!-- 动画只写这一层的 transform，外层基准坐标保持不变 -->
+          <g class="node-inner">
+            <circle v-if="node.kind === 'tech' && node.reuse > 1" class="node-halo" :r="node.reuse > 3 ? 13 : 11" />
+            <circle class="node-dot" :r="node.kind === 'project' ? 9 : (node.reuse > 1 ? 5.5 : 4)" />
+            <text class="graph-label" :y="node.kind === 'project' ? -16 : -10">{{ node.kind === 'project' ? node.shortLabel : node.label }}</text>
+          </g>
         </g>
       </g>
     </svg>
 
     <p class="graph-status" aria-live="polite">
       <template v-if="focusedNode">{{ focusText(focusedNode) }}</template>
-      <template v-else>鼠标移到节点上看它用在哪里；点击可锁定，再点空白取消</template>
+      <template v-else>鼠标移到节点上看它用在哪里、附近节点会轻轻让开；点击可锁定，再点空白取消</template>
     </p>
 
     <details class="graph-outline">

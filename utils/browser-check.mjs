@@ -149,10 +149,25 @@ try {
     })()
   `), true)
 
-  // 移出后高亮应清除
+  // 悬停放大：动画写在节点内层，基准坐标不动，所以这里量的是内层 transform 里的 scale
+  check('技术网络图：悬停会放大节点', await evaluate(`
+    (() => {
+      let max = 0
+      document.querySelectorAll('.graph-node.is-lit .node-inner').forEach(el => {
+        const m = /scale\\(([0-9.]+)\\)/.exec(el.getAttribute('transform') || '')
+        if (m) max = Math.max(max, Number(m[1]))
+      })
+      return Number(max.toFixed(2))
+    })()
+  `), scale => scale > 1.05)
+
+  // 移出后高亮应清除，且动画要停下来——不动的图不该持续占用 CPU
   await evaluate(`document.querySelector('.graph-canvas').dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }))`)
-  await sleep(300)
+  await sleep(1400)
   check('技术网络图：移出后高亮清除', await evaluate(`document.querySelectorAll('.graph-node.is-lit').length`), 0)
+  check('技术网络图：静止后动画归零（不持续占用）', await evaluate(`
+    [...document.querySelectorAll('.node-inner')].every(el => (el.getAttribute('transform') || '') === '')
+  `), true)
 
   // 文字版与图必须等价：既保证图挂了不丢信息，也防止两处数据漂移
   check('技术网络图：文字版与图等价', await evaluate(`
