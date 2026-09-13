@@ -10,7 +10,7 @@
   经确认前端**没有任何界面调用管理端**，其完成度不影响访客看到的内容，故后端按「未接入、冻结」处理。
 - 案例四的图注原先与截图不符（把读者端前台写成后台管理端、把 PC 页面写成移动端与小程序），
   已于 2026-09-13 按截图实况逐条改正，并补入经项目成员确认的个人贡献边界。
-- 浏览器交互验收已可执行：`node utils/browser-check.mjs http://127.0.0.1:1001/`，此前 42 项全部通过；本轮修正文案后尚未复跑。
+- 浏览器交互验收已可执行：`node utils/browser-check.mjs <url>`。本轮修正案例四文案后，已对 `vite preview` 服务的生产产物复跑，42/42 通过。
 - 对外展示名与仓库名分离：LexiFlow → `ai-translator`，Folio → `ai-second-brain`（ADR-013、ADR-014）。
 - 已具备 Netlify 部署条件：`netlify.toml` 与 `public/_redirects` 提供 SPA 回退，
   对生产产物（`vite preview` 服务的 dist）验收 42 项全过，深链返回 200 而非 404。
