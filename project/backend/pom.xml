@@ -73,6 +73,17 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <!-- 测试必须带 -Djdk.attach.allowAttachSelf=true：Mockito 注入 agent 需要起外部进程，
+                 缺这个参数时 14 项会全部报 "Could not self-attach to current VM"。
+                 写进构建配置而不是每次命令行传 -DargLine：只能靠文档记住的参数迟早会丢，
+                 放在这里则 IDE、CI 与队友直接跑 mvn test 都能通过。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Djdk.attach.allowAttachSelf=true</argLine>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

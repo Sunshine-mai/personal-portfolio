@@ -151,13 +151,47 @@ async function browserAcceptance() {
   }
 }
 
+// 解析 Maven 启动器的绝对路径。刻意不依赖 PATH 查找：
+// 本项目实测过——钩子由 git 的 sh 触发时，环境里的 PATH 已被转换过一次，
+// 其中一处畸形条目（落单的引号 + 未展开的 %JAVA_HOME%）会让 cmd.exe 的
+// 可执行文件搜索失效。结果是在终端里 mvn 正常，在钩子里却报
+// 'mvn' is not recognized。用绝对路径调用可完全绕过 PATH 解析。
+function resolveMaven() {
+  const isWindows = process.platform === 'win32'
+  const launcher = isWindows ? 'mvn.cmd' : 'mvn'
+  const candidates = []
+
+  for (const key of ['MAVEN_HOME', 'M2_HOME']) {
+    const base = process.env[key]
+    if (base) candidates.push(join(base, 'bin', launcher))
+  }
+  for (const rawEntry of (process.env.PATH || '').split(isWindows ? ';' : ':')) {
+    const entry = rawEntry.trim().replace(/^"+|"+$/g, '')
+    if (entry) candidates.push(join(entry, launcher))
+  }
+
+  for (const candidate of candidates) {
+    try {
+      if (existsSync(candidate)) return candidate
+    } catch {
+      // 畸形的 PATH 条目会拼出非法路径，跳过即可
+    }
+  }
+  return null
+}
+
 // ── 4. 后端测试 ──────────────────────────────────────────────────────────────
 function backendTests() {
   step('后端测试')
-  // -Djdk.attach.allowAttachSelf=true 是必须的：Mockito 注入 agent 要起外部进程，
-  // 缺这个参数时 14 项会全部报 "Could not self-attach to current VM"。
-  run('mvn', ['-o', 'test', '-DargLine=-Djdk.attach.allowAttachSelf=true'], { cwd: backend, shell: true })
-  ok('后端测试通过')
+  const maven = resolveMaven()
+  if (!maven) {
+    fail('找不到 Maven。后端测试需要它；只改前端时可用 --no-backend，或把 Maven 的 bin 目录加入 PATH。')
+  }
+  // JVM 参数已写在 backend/pom.xml 的 surefire 配置里，命令行不再重复传，
+  // 这样 IDE、CI 与队友直接跑 mvn test 也能通过。
+  const command = /\s/.test(maven) ? `"${maven}"` : maven
+  run(command, ['-o', 'test'], { cwd: backend, shell: true })
+  ok(`后端测试通过（${maven}）`)
 }
 
 async function main() {
