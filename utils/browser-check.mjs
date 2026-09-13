@@ -335,21 +335,31 @@ try {
   //   https —— 接口返回的是 http://，不改写会被浏览器的混合内容策略拦掉；
   //   referrerpolicy=no-referrer —— 实测 B 站图床带外站 Referer 返回 403，不加封面会全裂；
   //   不预先挂载三方播放器 —— 否则首屏就要为 4 个 iframe 付出代价。
-  check('剪辑作品卡片已渲染', await evaluate(`document.querySelectorAll('.edit-card').length`), 4)
+  // 首页只放最新 6 条，全部 19 条在 /edit-works。首页那一节放满会把后面几节压到很下面。
+  check('首页剪辑作品卡片只放最新 6 条', await evaluate(`document.querySelectorAll('.edit-card').length`), 6)
+  check('首页有"查看全部作品"入口且指向全集页', await evaluate(`
+    (() => {
+      const link = document.querySelector('.edit-more')
+      return { 文字: (link?.textContent || '').replace(/\\s+/g, ' ').trim(), 指向: link?.getAttribute('href') || '' }
+    })()
+  `), v => v.指向 === '/edit-works' && v.文字.includes('全部'))
   // 封面已从 B 站外链改为本地文件：外链会静默腐烂，且访客打开首页时会碰到第三方 CDN。
   check('封面已本地化，不再依赖 B 站外链', await evaluate(`
     [...document.querySelectorAll('.edit-cover')].every(img => (img.getAttribute('src') || '').startsWith('/assets/edit-works/'))
   `), true)
-  // 光有路径不够——本地文件也可能缺失。滚到这一节让 lazy 图真正加载，
+  // 光有路径不够——本地文件也可能缺失。滚到这一节让 lazy 图真正开始加载，
   // 再量 naturalWidth。只断言"属性写对了"等于没测封面到底能不能显示。
+  // 19 张里只核对进入视野的那几张（lazy 的语义就是不全部加载）；
+  // "19 个文件是否都在盘上"由采集脚本与包体积检查负责，那件事在浏览器里反而测不准。
   await evaluate(`document.querySelector('#edit-works').scrollIntoView({ behavior: 'instant', block: 'start' })`)
-  await sleep(1500)
-  check('封面文件都真实加载到了（不是裂图）', await evaluate(`
+  await sleep(1600)
+  check('进入视野的封面都真实加载了（不是裂图）', await evaluate(`
     (() => {
       const imgs = [...document.querySelectorAll('.edit-cover')]
-      return { 总数: imgs.length, 已加载: imgs.filter(i => i.complete && i.naturalWidth > 0).length }
+      const loaded = imgs.filter(i => i.complete && i.naturalWidth > 0)
+      return { 卡片数: imgs.length, 已加载: loaded.length }
     })()
-  `), v => v.总数 === 4 && v.已加载 === 4)
+  `), v => v.卡片数 === 6 && v.已加载 >= 3)
   await evaluate(`window.scrollTo(0, 0)`)
   await sleep(600)
   check('默认不预先挂载三方播放器', await evaluate(`document.querySelectorAll('.edit-player').length`), 0)
@@ -855,6 +865,18 @@ try {
 
   await evaluate(`[...document.querySelectorAll('[role="tab"]')].find(b => b.textContent.trim() === '全部').click()`)
   await sleep(400)
+
+  // ===== 作品全集页 /edit-works =====
+  await goto('/edit-works')
+  await sleep(1200)
+  check('作品全集页渲染全部作品', await evaluate(`document.querySelectorAll('.edit-card').length`), 19)
+  check('全集页作品按发布时间倒序', await evaluate(`
+    [...document.querySelectorAll('.edit-meta')].map(m => m.textContent.trim().slice(0, 10))
+  `), dates => dates.length === 19 && dates.every((d, i) => i === 0 || dates[i - 1] >= d))
+  check('全集页封面全部本地化', await evaluate(`
+    [...document.querySelectorAll('.edit-cover')].every(img => (img.getAttribute('src') || '').startsWith('/assets/edit-works/'))
+  `), true)
+  check('全集页有返回入口', await evaluate(`!!document.querySelector('.edit-page .detail-back')`), true)
 
   // ===== 移动端菜单 =====
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true })

@@ -39,17 +39,47 @@ const outFile = outIndex >= 0 ? args[outIndex + 1] : null
 const moduleIndex = args.indexOf('--module')
 const moduleFile = moduleIndex >= 0 ? args[moduleIndex + 1] : null
 const refreshCovers = args.includes('--refresh-covers')
-const bvids = args.filter((a, i) =>
+const fullCovers = args.includes('--full-covers')
+// 允许三种写法，省掉"去地址栏里找 BV 号"这一步：
+//   BV1hSTy6AEAm
+//   https://www.bilibili.com/video/BV1hSTy6AEAm/
+//   https://b23.tv/xxxxxxx        ← App 里「分享 → 复制链接」给的就是这种短链，需要跟随跳转
+const BV_PATTERN = /BV[0-9A-Za-z]{10}/
+
+async function resolveBvid(input) {
+  const direct = String(input).match(BV_PATTERN)
+  if (direct) return direct[0]
+  if (!/^https?:\/\//i.test(input)) return null
+  try {
+    const response = await fetch(input, { redirect: 'follow', headers: { 'User-Agent': UA } })
+    const fromFinal = response.url.match(BV_PATTERN)
+    if (fromFinal) return fromFinal[0]
+    const html = await response.text()
+    const fromBody = html.match(BV_PATTERN)
+    return fromBody ? fromBody[0] : null
+  } catch {
+    return null
+  }
+}
+
+const rawInputs = args.filter((a, i) =>
   !a.startsWith('--') && !(outIndex >= 0 && i === outIndex + 1) && !(moduleIndex >= 0 && i === moduleIndex + 1))
 
-if (!bvids.length) {
-  console.error('用法：node utils/collect-bilibili.mjs [--out 文件] BV号 [BV号 ...]')
+if (!rawInputs.length) {
+  console.error('用法：node utils/collect-bilibili.mjs [--module 路径] [--refresh-covers] BV号|链接 [更多...]')
   process.exit(1)
 }
 
-const bad = bvids.filter(id => !/^BV[0-9A-Za-z]{10}$/.test(id))
-if (bad.length) {
-  console.error(`这些不像 BV 号（应为 BV + 10 位）：${bad.join(', ')}`)
+const bvids = []
+const unresolved = []
+for (const raw of rawInputs) {
+  const bvid = await resolveBvid(raw)
+  if (bvid) bvids.push(bvid)
+  else unresolved.push(raw)
+}
+if (unresolved.length) {
+  console.error('这些既不是 BV 号也不是能解析出 BV 号的链接：')
+  for (const item of unresolved) console.error(`  ${item}`)
   process.exit(1)
 }
 
@@ -59,14 +89,22 @@ function secondsToClock(total) {
   return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 }
 
+// 封面下载用图床自带的尺寸变体，而不是原图。实测（同一张封面）：
+//   原图 238 KB / @672w_378h_1c.webp 30.7 KB / @480w_270h_1c.webp 20.3 KB
+// 672×378 正好是 16:9，与卡片的展示框比例一致，所以 CSS 不会再裁一次。
+// 19 张按原图要 4.8 MB，用变体约 0.6 MB——而且不需要任何本地图像工具。
+// 要原图加 --full-covers。
+const COVER_VARIANT = '@672w_378h_1c.webp'
+
 // 下载封面到本地。必须**不带 Referer**：实测 B 站图床带外站 Referer 返回 403。
 async function downloadCover(bvid, coverUrl) {
   mkdirSync(coverDir, { recursive: true })
-  const ext = extname(new URL(coverUrl).pathname) || '.jpg'
+  const url = fullCovers ? coverUrl : `${coverUrl}${COVER_VARIANT}`
+  const ext = fullCovers ? (extname(new URL(coverUrl).pathname) || '.jpg') : '.webp'
   const filename = `${bvid}${ext}`
   const dest = join(coverDir, filename)
   if (existsSync(dest) && !refreshCovers) return { filename, skipped: true }
-  const response = await fetch(coverUrl, { headers: { 'User-Agent': UA } })
+  const response = await fetch(url, { headers: { 'User-Agent': UA } })
   if (!response.ok) throw new Error(`封面下载失败 HTTP ${response.status}`)
   const buffer = Buffer.from(await response.arrayBuffer())
   if (buffer.length < 1024) throw new Error(`封面体积异常（${buffer.length} 字节），可能不是图片`)
