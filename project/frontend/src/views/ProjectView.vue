@@ -91,6 +91,43 @@ watch(() => route.params.slug, slug => { if (slug) load(slug) })
         </div>
       </section>
 
+      <section v-if="project.stack || project.structure" class="content-section detail-anatomy">
+        <div class="shell">
+          <div v-if="project.stack" class="anatomy-block">
+            <h2 class="detail-heading">技术栈</h2>
+            <p class="detail-note">按一次请求经过的顺序排列，箭头表示调用方向。</p>
+            <div class="stack-list">
+              <div v-for="row in project.stack" :key="row.layer" class="stack-row">
+                <span class="stack-layer">{{ row.layer }}</span>
+                <span class="stack-items">
+                  <span v-for="item in row.items" :key="item" class="stack-item">{{ item }}</span>
+                </span>
+                <span v-if="row.note" class="stack-note">{{ row.note }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="project.structure" class="anatomy-block">
+            <h2 class="detail-heading">项目结构</h2>
+            <p class="detail-note">只展示有代表性的层级，用来说明代码如何组织，不是完整目录。</p>
+            <div class="tree-card">
+              <p class="tree-root">{{ project.structure.root }}</p>
+              <ul class="tree-list">
+                <li
+                  v-for="node in project.structure.nodes"
+                  :key="`${node.depth}-${node.name}`"
+                  :style="{ paddingLeft: `${node.depth * 22 + 6}px` }"
+                >
+                  <span class="tree-name">{{ node.name }}</span>
+                  <span v-if="node.note" class="tree-note">{{ node.note }}</span>
+                </li>
+              </ul>
+              <p class="tree-legend">{{ project.structure.note }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="content-section detail-body">
         <div class="shell detail-grid">
           <div class="detail-main" v-reveal>

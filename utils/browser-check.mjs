@@ -113,6 +113,13 @@ try {
   check('卡片链接指向详情路由', await evaluate(`document.querySelector('a.project-card')?.getAttribute('href') || ''`), value => /^\/projects\//.test(value))
   check('页面内不再有抽屉元素', await evaluate(`!document.querySelector('.drawer')`), true)
 
+  // 页内锚点：顶部导航吸顶 72px，跳转目标必须留出它的高度，否则标题会被压在导航栏下面。
+  await evaluate(`document.getElementById('projects').scrollIntoView({ block: 'start' })`)
+  await sleep(900)
+  check('锚点跳转后目标区块未被吸顶导航遮挡', await evaluate(`Math.round(document.getElementById('projects').getBoundingClientRect().top) >= 80`), true)
+  await evaluate(`window.scrollTo(0, 0)`)
+  await sleep(500)
+
   // ===== 点击进入详情页 =====
   await evaluate(`document.querySelectorAll('a.project-card')[0].click()`)
   await sleep(2600)
@@ -124,7 +131,18 @@ try {
   check('图组计数文案', await evaluate(`document.querySelector('.gallery-bar span').textContent.trim()`), '1 / 3')
   // 证据（含迁移次数、测试数等硬数字）已提到首屏事实清单，二级页面不再重复展示，避免同一信息出现两次。
   check('首屏证据事实施已渲染', await evaluate(`(document.querySelector('.detail-facts .fact-evidence dd')?.textContent || '').trim().length > 10`), true)
+  // 技术栈与项目结构（试点：LexiFlow 与 Folio 两个独立项目）
+  check('技术栈分层已渲染', await evaluate(`document.querySelectorAll('.stack-row').length`), 4)
+  check('技术栈首层为前端', await evaluate(`document.querySelector('.stack-layer')?.textContent.trim() || ''`), '前端')
+  check('项目结构树已渲染', await evaluate(`document.querySelectorAll('.tree-list li').length`), 14)
+  check('目录树带脱敏声明', await evaluate(`(document.querySelector('.tree-legend')?.textContent || '').includes('脱敏摘要')`), true)
   await capture('v11-detail-lexiflow.png')
+  // 技术栈与项目结构在首屏之下，单独截一张作为这两块的留存证据。
+  await evaluate(`document.querySelector('.detail-anatomy')?.scrollIntoView({ block: 'start' })`)
+  await sleep(700)
+  await capture('v11-detail-anatomy.png')
+  await evaluate(`window.scrollTo(0, 0)`)
+  await sleep(400)
 
   // 图组翻页：左右箭头位于图片两侧
   check('左右箭头位于图片两侧', await evaluate(`document.querySelectorAll('.gallery-frame > .gallery-nav').length`), 2)

@@ -52,6 +52,29 @@ a.project-card:focus-visible{outline:2px solid var(--warm);outline-offset:3px}
 .detail-grid{display:grid;grid-template-columns:1.55fr .95fr;gap:56px;align-items:start}
 .detail-heading{margin:0 0 8px;font:500 30px/1.2 var(--serif)}
 .detail-note{margin:0 0 26px;color:var(--muted);font-size:14px}
+/* 顶部导航吸顶 72px。页内锚点（#projects、#method 等）跳转时必须留出它的高度，
+   否则目标区块的标题会被压在导航栏下面——首页"查看代表项目"和各个导航链接都受影响。 */
+[id]{scroll-margin-top:88px}
+/* 技术栈按调用方向横向分层，刻意不做树状图：5 个案例的层级高度相似，重复的图形只会变成噪声；
+   更复杂的知识图谱式展示留给独立立项的知识体系项目，本项目聚焦呈现项目与内容。 */
+.detail-anatomy{padding:56px 0 8px}
+.anatomy-block + .anatomy-block{margin-top:50px}
+.stack-list{display:grid}
+.stack-row{position:relative;display:grid;grid-template-columns:92px minmax(0,1fr) 34ch;gap:18px;align-items:baseline;padding:15px 0;border-top:1px solid var(--line)}
+.stack-row:first-child{border-top:0}
+.stack-row + .stack-row:before{content:'\2193';position:absolute;top:-10px;left:40px;padding:0 5px;background:var(--bg);color:var(--faint);font:11px var(--mono)}
+.stack-layer{color:var(--warm);font:500 11px var(--mono);letter-spacing:.12em}
+.stack-items{display:flex;flex-wrap:wrap;gap:6px}
+.stack-item{border:1px solid var(--line);background:var(--panel-2);padding:3px 9px;color:var(--ink);font:11px var(--mono)}
+.stack-note{color:var(--faint);font-size:12px}
+.tree-card{border:1px solid var(--line);background:var(--panel);padding:20px 22px}
+.tree-root{margin:0 0 12px;color:var(--warm-soft);font:12px var(--mono)}
+.tree-list{margin:0;padding:0;list-style:none}
+.tree-list li{display:flex;flex-wrap:wrap;gap:14px;align-items:baseline;padding:4px 0}
+.tree-name{color:var(--ink);font:12px var(--mono)}
+.tree-note{color:var(--faint);font-size:12px}
+.tree-legend{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line);color:var(--faint);font:11px var(--mono)}
+@media(max-width:900px){.detail-anatomy{padding:40px 0 8px}.anatomy-block + .anatomy-block{margin-top:34px}.stack-row{grid-template-columns:1fr;gap:8px;padding:13px 0}.stack-row + .stack-row:before{left:12px}.stack-note{max-width:none}}
 .detail-aside{display:grid;gap:18px}
 .detail-card{border:1px solid var(--line);background:var(--panel);padding:24px}
 .detail-card h3{margin:0 0 10px;font:500 17px/1.3 var(--serif)}
