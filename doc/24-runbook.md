@@ -99,11 +99,15 @@ node utils/verify.mjs      # 先确保门禁通过
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
-| `spawn EPERM` / `couldn't create signal pipe` | 受限环境禁止子进程管道通信 | 环境边界，不是代码缺陷。换到普通终端运行 |
-| 后端测试 14 项全报 `Could not self-attach to current VM` | 缺少 JVM 参数 | 必须带 `-Djdk.attach.allowAttachSelf=true`（`verify.mjs` 已内置） |
-| 门禁说某文件有硬编码口令 | 可能确实是凭据，也可能是误报 | 逐条确认；是凭据就改成环境变量注入，是误报就把该模式加进 `verify.mjs` 的白名单 |
-| `Cannot connect to Chrome DevTools` | 找不到 Chrome/Edge，或起不来 | 确认安装了 Chrome 或 Edge；受限环境下需放宽权限 |
-| 推送被钩子拦下 | 门禁未通过 | 看输出里失败的那一步；修好后重推 |
+| `file access denied under workspace-write mode` | 受限沙箱只允许写工作区 | 环境边界，不是代码缺陷。需改工作区外的文件时必须显式申请放宽 |
+| `spawn EPERM` / `couldn't create signal pipe` | 受限环境禁止以管道捕获子进程输出 | 环境边界。Vite 构建、无头 Chrome、Maven 测试都会撞到；换普通终端或放宽权限 |
+| `failed to execute prompt script` / git 联网失败 | 沙箱禁止 git 的凭据 helper 起子进程 | 环境边界；换普通终端或放宽权限 |
+| 钩子里报 `'mvn' is not recognized`，但终端里 `mvn -v` 正常 | 系统 PATH 中存在畸形条目（落单的引号）会让 `cmd.exe` 的可执行文件搜索失效 | 已在 `utils/verify.mjs` 用**绝对路径**调用 Maven 规避。其它工具若遇到，建议清理系统 PATH 中的异常条目 |
+| 后端测试 14 项全报 `Could not self-attach to current VM` | 缺少 JVM 参数 | 该参数已配置在 `backend/pom.xml` 的 surefire 里，直接 `mvn test` 即可，不需要命令行传 |
+| 门禁说某文件有硬编码口令 | 可能确实是凭据，也可能是误报 | 逐条确认；是凭据就改成环境变量注入，是误报就调整 `verify.mjs` 的判定规则（**不要直接关掉扫描**） |
+| `Cannot connect to Chrome DevTools` | 找不到 Chrome/Edge，或它起不来 | 确认安装了 Chrome 或 Edge；受限环境下 Chrome 依赖命名管道而无法启动，需放宽权限 |
+| 推送被钩子拦下 | 门禁未通过 | 看输出里失败的那一步；修好后重推。**不要习惯性用 `--no-verify`** |
+| `git reset --hard` 之后修改不见了 | 该命令会丢弃未提交的改动 | 它只该用来回退已提交的临时内容；**回退前先确认工作区没有要保留的修改** |
 
 ## 相关文档
 
