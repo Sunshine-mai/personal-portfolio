@@ -83,17 +83,41 @@ cp .env.example .env    # 然后按需修改；.env 已被 gitignore
 
 ## 部署
 
-**当前状态：手工部署（尚未自动化）。** 生产产物在 `project/frontend/dist/`，站点托管于 Netlify（`taupe-chimera-547f35`）。
+**当前状态：推送即自动部署。** Netlify 站点 `taupe-chimera-547f35` 已关联 GitHub 仓库
+`Sunshine-mai/personal-portfolio`，监听 `main` 分支。构建配置由 `netlify.toml` 提供。
 
 ```bash
-node utils/verify.mjs      # 先确保门禁通过
-# 构建产物已在 dist/；把 dist/ 上传到 Netlify
+git push github main      # 推送后 Netlify 自动拉取、构建、上线
 ```
 
-> ⚠️ 拖拽方式**不会自动更新**。忘了上传，线上就永远停在上一个版本。
-> 路线阶段 0 的任务 0.4 会把这一步自动化，届时本节会改写。
+**不需要任何额外命令。** `node utils/verify.mjs` 已由 pre-push 钩子自动执行，
+门禁不通过就推不出去，坏提交进不了 Netlify。
+
+**部署来源是 GitHub，不是 Gitee。** 原因：Netlify 官方只支持
+GitHub / GitLab / Bitbucket / Azure DevOps，**不支持 Gitee**。
+所以改完代码必须推到 `github` 这个远端；只推 Gitee 不会触发部署。
+
+**怎么确认线上跑的是哪个版本**（不要靠"感觉已经上线了"）：
+
+```bash
+curl -s https://taupe-chimera-547f35.netlify.app/ | grep build-commit
+# 输出里的 content 应等于你刚推的提交短号
+```
+
+构建时会把提交号写进 `<meta name="build-commit">`（见 `project/frontend/vite.config.js`），
+取值优先级：`BUILD_COMMIT` > Netlify 注入的 `COMMIT_REF` > 本地 `.git/HEAD`。
+**线上有它，就说明这次部署是从仓库构建的，而不是手工上传的产物。**
+
+**失败时**：Netlify 构建失败会**保留上一次成功部署**，站点不会挂。
+在 Netlify 面板的 `Deploys` 里看报错；确认无误后可用 `Trigger deploy → Clear cache and deploy site` 重试。
+
+**回滚**：Netlify 面板 → `Deploys` → 选一个历史成功部署 → `Publish deploy`。
 
 **深链** `/projects/:slug` 依赖 SPA 回退，由 `netlify.toml` 与 `project/frontend/public/_redirects` 提供。改动这两处后必须实测深链返回 200 而非 404。
+
+> 注意：SPA 下未知路径也返回 200（服务器回退到 `index.html`），由前端显示 404 界面。
+> 这是设计如此；真正的问题信号是深链返回 404。
+
 
 ## 出问题怎么办
 
